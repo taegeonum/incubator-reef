@@ -18,26 +18,6 @@
  */
 package org.apache.reef.examples.network;
 
-import org.apache.reef.wake.remote.Codec;
+public final class FirstEvent {
 
-import javax.inject.Inject;
-
-/**
- * Codec for String
- */
-public class StringCodec implements Codec<String> {
-
-  @Inject
-  public StringCodec() {
-  }
-
-  @Override
-  public String decode(byte[] data) {
-    return new String(data);
-  }
-
-  @Override
-  public byte[] encode(String obj) {
-    return obj.getBytes();
-  }
 }

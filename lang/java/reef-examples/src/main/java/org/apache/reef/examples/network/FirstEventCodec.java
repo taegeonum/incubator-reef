@@ -18,30 +18,27 @@
  */
 package org.apache.reef.examples.network;
 
-import org.apache.reef.io.network.NetworkEvent;
-import org.apache.reef.io.network.NetworkEventHandler;
+import org.apache.reef.wake.remote.Codec;
 
 import javax.inject.Inject;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- * Gets string message from driver and fire exchanging between two evaluators
+ * Codec for IntegerEvent
  */
-public class OddStringEventHandler implements NetworkEventHandler<String> {
-
-  private static final Logger LOG = Logger.getLogger(OddIntegerEventHandler.class.getName());
-
-  private final MonitorForDriver monitorForDriver;
+public final class FirstEventCodec implements Codec<FirstEvent> {
 
   @Inject
-  public OddStringEventHandler(final MonitorForDriver monitorForDriver) {
-    this.monitorForDriver = monitorForDriver;
+  public FirstEventCodec(){
+
   }
 
   @Override
-  public void onNext(NetworkEvent<String> value) {
-    LOG.log(Level.INFO, "{0}", value);
-    monitorForDriver.monitorNotify();
+  public FirstEvent decode(byte[] data) {
+    return new FirstEvent();
+  }
+
+  @Override
+  public byte[] encode(FirstEvent obj) {
+    return new byte[0];
   }
 }

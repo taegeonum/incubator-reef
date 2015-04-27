@@ -24,35 +24,31 @@ import org.apache.reef.io.network.NetworkService;
 import org.apache.reef.tang.InjectionFuture;
 
 import javax.inject.Inject;
-import java.util.logging.Level;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 /**
- * Gets even integer event and sends odd integer event.
+ * SecondEventHandler
  */
-public final class EvenIntegerEventHandler implements NetworkEventHandler<IntegerEvent> {
+public final class SecondEventHandler implements NetworkEventHandler<SecondEvent> {
 
-  private static final Logger LOG = Logger.getLogger(EvenIntegerEventHandler.class.getName());
+  private static final Logger LOG = Logger.getLogger(SecondEventHandler.class.getName());
 
-  private final Monitor monitor;
   private final InjectionFuture<NetworkService> networkService;
-
+  private final BlockingQueue<SecondEvent> queue = new LinkedBlockingQueue<>();
   @Inject
-  public EvenIntegerEventHandler(
-      final Monitor monitor,
+  public SecondEventHandler(
       final InjectionFuture<NetworkService> networkService) {
     this.networkService = networkService;
-    this.monitor = monitor;
   }
 
   @Override
-  public void onNext(NetworkEvent<IntegerEvent> value) {
-    LOG.log(Level.INFO, value.toString());
-    if (value.getEventAt(0).getInt() == 1000) {
-      monitor.monitorNotify();
-      return;
-    }
+  public void onNext(NetworkEvent<SecondEvent> event) {
+    queue.add(event.getEventAt(0));
+  }
 
-    networkService.get().sendEvent(value.getRemoteId(), new IntegerEvent(value.getEventAt(0).getInt() + 1));
+  public SecondEvent getEvent() throws InterruptedException {
+    return queue.take();
   }
 }

@@ -18,34 +18,26 @@
  */
 package org.apache.reef.examples.network;
 
-import org.apache.reef.io.network.NetworkEvent;
-import org.apache.reef.io.network.NetworkEventHandler;
-import org.apache.reef.io.network.NetworkService;
-import org.apache.reef.tang.InjectionFuture;
+import org.apache.reef.wake.remote.Codec;
 
 import javax.inject.Inject;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- * Responses when OddIntegerEventTask sends a message
+ * Codec for String
  */
-public class DriverStringEventHandler implements NetworkEventHandler<String> {
-
-  private static final Logger LOG = Logger.getLogger(OddIntegerEventHandler.class.getName());
-
-  private InjectionFuture<NetworkService> networkService;
+public class SecondEventCodec implements Codec<SecondEvent> {
 
   @Inject
-  public DriverStringEventHandler(
-      final InjectionFuture<NetworkService> networkService) {
-    this.networkService = networkService;
+  public SecondEventCodec() {
   }
 
   @Override
-  public void onNext(NetworkEvent<String> value) {
-    LOG.log(Level.INFO, "{0}", value);
-    networkService.get().sendEvent(value.getRemoteId(), "World!");
+  public SecondEvent decode(byte[] data) {
+    return new SecondEvent();
+  }
+
+  @Override
+  public byte[] encode(SecondEvent obj) {
+    return new byte[0];
   }
 }
-

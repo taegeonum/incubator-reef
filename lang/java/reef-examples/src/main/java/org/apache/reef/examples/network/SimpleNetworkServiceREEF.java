@@ -38,7 +38,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Simple reef application using NetworkService
+ * Simple reef application using new NetworkService
+ *
+ * SimpleNetworkServiceDriver sends two events (FirstEvent, SecondEvent) to SimplePrintEventsTask with NetworkService.
+ * The SimplePrintEventsTask prints "First" when receiving FirstEvent and prints "Second" when receiving SecondEvent.
+ * The two events' codec and event handler are injected into new NetworkService, which can bind multiple codecs and handlers.
+ *
  */
 public final class SimpleNetworkServiceREEF {
   private static final Logger LOG = Logger.getLogger(SimpleNetworkServiceREEF.class.getName());
@@ -49,13 +54,15 @@ public final class SimpleNetworkServiceREEF {
         .set(DriverConfiguration.DRIVER_IDENTIFIER, "SimpleNSExampleREEF")
         .set(DriverConfiguration.ON_DRIVER_STARTED, SimpleNetworkServiceDriver.StartHandler.class)
         .set(DriverConfiguration.ON_EVALUATOR_ALLOCATED, SimpleNetworkServiceDriver.EvaluatorAllocatedHandler.class)
+        .set(DriverConfiguration.ON_TASK_RUNNING, SimpleNetworkServiceDriver.RunningTaskHandler.class)
         .build();
 
+    // bind multiple events and codes into NetworkService
     Configuration networkConf = NetworkServiceDriverConfiguration.CONF
-        .set(NetworkServiceBaseConfiguration.NETWORK_EVENTS, String.class.getName())
-        .set(NetworkServiceBaseConfiguration.NETWORK_EVENTS, IntegerEvent.class.getName())
-        .set(NetworkServiceBaseConfiguration.NETWORK_CODECS, StringCodec.class)
-        .set(NetworkServiceBaseConfiguration.NETWORK_EVENT_HANDLERS, DriverStringEventHandler.class)
+        .set(NetworkServiceBaseConfiguration.NETWORK_EVENTS, FirstEvent.class.getName())
+        .set(NetworkServiceBaseConfiguration.NETWORK_EVENTS, SecondEvent.class.getName())
+        .set(NetworkServiceBaseConfiguration.NETWORK_CODECS, FirstEventCodec.class)
+        .set(NetworkServiceBaseConfiguration.NETWORK_CODECS, SecondEventCodec.class)
         .set(NetworkServiceDriverConfiguration.NETWORK_SERVICE_ID, "DriverNSId")
         .build();
 
@@ -81,7 +88,7 @@ public final class SimpleNetworkServiceREEF {
     if (isLocal) {
       LOG.log(Level.INFO, "Running network service example on the local runtime");
       runtimeConfiguration = LocalRuntimeConfiguration.CONF
-          .set(LocalRuntimeConfiguration.MAX_NUMBER_OF_EVALUATORS, 2)
+          .set(LocalRuntimeConfiguration.MAX_NUMBER_OF_EVALUATORS, 1)
           .build();
     } else {
       LOG.log(Level.INFO, "Running network service example on YARN");

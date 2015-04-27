@@ -18,26 +18,6 @@
  */
 package org.apache.reef.examples.network;
 
-import org.apache.reef.task.Task;
+public final class SecondEvent {
 
-import javax.inject.Inject;
-
-/**
- * Waits to finish exchanging
- */
-public final class EvenIntegerEventTask implements Task {
-
-  private Monitor monitor;
-
-  @Inject
-  public EvenIntegerEventTask(
-      final Monitor monitor){
-    this.monitor = monitor;
-  }
-
-  @Override
-  public byte[] call(byte[] memento) throws Exception {
-    monitor.monitorWait();
-    return null;
-  }
 }

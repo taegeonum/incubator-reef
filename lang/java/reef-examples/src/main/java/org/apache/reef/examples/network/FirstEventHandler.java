@@ -24,34 +24,31 @@ import org.apache.reef.io.network.NetworkService;
 import org.apache.reef.tang.InjectionFuture;
 
 import javax.inject.Inject;
-import java.util.logging.Level;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 /**
- * Gets odd integer event and sends even integer event.
+ * FirstEventHandler
  */
-public final class OddIntegerEventHandler implements NetworkEventHandler<IntegerEvent> {
+public final class FirstEventHandler implements NetworkEventHandler<FirstEvent> {
 
-  private static final Logger LOG = Logger.getLogger(OddIntegerEventHandler.class.getName());
+  private static final Logger LOG = Logger.getLogger(FirstEventHandler.class.getName());
 
-  private final Monitor monitor;
   private final InjectionFuture<NetworkService> networkService;
-
+  private final BlockingQueue<FirstEvent> queue = new LinkedBlockingQueue<>();
   @Inject
-  public OddIntegerEventHandler(
-      final Monitor monitor,
-      final InjectionFuture<NetworkService> networkService) {
+  public FirstEventHandler(
+          final InjectionFuture<NetworkService> networkService) {
     this.networkService = networkService;
-    this.monitor = monitor;
   }
 
   @Override
-  public void onNext(NetworkEvent<IntegerEvent> value) {
-    LOG.log(Level.INFO, value.toString());
-    if (value.getEventAt(0).getInt() == 999) {
-      monitor.monitorNotify();
-    }
+  public void onNext(NetworkEvent<FirstEvent> event) {
+    queue.add(event.getEventAt(0));
+  }
 
-    networkService.get().sendEvent(value.getRemoteId(), new IntegerEvent(value.getEventAt(0).getInt() + 1));
+  public FirstEvent getEvent() throws InterruptedException {
+    return queue.take();
   }
 }

@@ -22,12 +22,16 @@ import org.apache.reef.driver.context.ContextConfiguration;
 import org.apache.reef.driver.evaluator.AllocatedEvaluator;
 import org.apache.reef.driver.evaluator.EvaluatorRequest;
 import org.apache.reef.driver.evaluator.EvaluatorRequestor;
+import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.driver.task.TaskConfiguration;
-import org.apache.reef.io.network.*;
+import org.apache.reef.io.network.NetworkService;
+import org.apache.reef.io.network.NetworkServiceConfigurationBuilderFactory;
+import org.apache.reef.io.network.util.StringIdentifierFactory;
 import org.apache.reef.tang.Configuration;
-import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Unit;
 import org.apache.reef.wake.EventHandler;
+import org.apache.reef.wake.Identifier;
+import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.time.event.StartTime;
 
 import javax.inject.Inject;
@@ -39,9 +43,6 @@ import java.util.logging.Logger;
 /**
  * Driver for SimpleNetworkServiceREEF.
  *
- * OddIntegerEventTask sends a message from driver, and driver responses.
- * Then OddIntegerEventTask, EvenIntegerEventTask exchange integer message while the number of
- * sent message is less than expected, 1000.
  */
 @Unit
 public final class SimpleNetworkServiceDriver {
@@ -52,7 +53,7 @@ public final class SimpleNetworkServiceDriver {
   private final NetworkServiceConfigurationBuilderFactory nsConfFactory;
   private final AtomicInteger evaluatorNum = new AtomicInteger(1);
   private NetworkService networkService;
-
+  private final IdentifierFactory identifierFactory;
   /**
    * Job driver constructor - instantiated via TANG.
    *
@@ -66,6 +67,7 @@ public final class SimpleNetworkServiceDriver {
     this.requestor = requestor;
     this.networkService = networkService;
     this.nsConfFactory = nsConfFactory;
+    this.identifierFactory = new StringIdentifierFactory();
     LOG.log(Level.FINE, "Instantiated 'SimpleNetworkServiceDriver'");
   }
 
@@ -73,7 +75,7 @@ public final class SimpleNetworkServiceDriver {
     @Override
     public void onNext(final StartTime startTime) {
       SimpleNetworkServiceDriver.this.requestor.submit(EvaluatorRequest.newBuilder()
-          .setNumber(2)
+          .setNumber(1)
           .setMemory(64)
           .setNumberOfCores(1)
           .build());
@@ -91,38 +93,32 @@ public final class SimpleNetworkServiceDriver {
 
       Configuration serviceConf = null;
       Configuration taskConf = null;
+      serviceConf = nsConfFactory.createBuilder("SimplePrintEventsTask")
+                .addCodec(FirstEventCodec.class)
+                .addCodec(SecondEventCodec.class)
+                .addEventHandler(FirstEventHandler.class)
+                .addEventHandler(SecondEventHandler.class)
+                .build();
 
-      if (num == 1) {
-
-        serviceConf = Tang.Factory.getTang()
-            .newConfigurationBuilder()
-            .bindNamedParameter(OddIntegerEventTask.SecondNetworkServiceId.class, "EvenIntegerEventEvaluator")
+      taskConf = TaskConfiguration.CONF
+            .set(TaskConfiguration.IDENTIFIER, "SimplePrintEventsTask")
+            .set(TaskConfiguration.TASK, SimplePrintEventsTask.class)
             .build();
 
-        serviceConf = nsConfFactory.createBuilder(serviceConf, "OddIntegerEventEvaluator")
-            .addCodec(StringCodec.class)
-            .addCodec(IntegerEventCodec.class)
-            .addEventHandler(OddIntegerEventHandler.class)
-            .addEventHandler(OddStringEventHandler.class)
-            .build();
-
-        taskConf = TaskConfiguration.CONF
-            .set(TaskConfiguration.IDENTIFIER, "Odd Task")
-            .set(TaskConfiguration.TASK, OddIntegerEventTask.class)
-            .build();
-      } else if (num == 2) {
-        serviceConf = nsConfFactory.createBuilder("EvenIntegerEventEvaluator")
-            .addCodec(IntegerEventCodec.class)
-            .addEventHandler(EvenIntegerEventHandler.class)
-            .build();
-
-        taskConf = TaskConfiguration.CONF
-            .set(TaskConfiguration.IDENTIFIER, "Even Task")
-            .set(TaskConfiguration.TASK, EvenIntegerEventTask.class)
-            .build();
-      }
 
       allocatedEvaluator.submitContextAndServiceAndTask(contextConf, serviceConf, taskConf);
+    }
+  }
+
+  public final class RunningTaskHandler implements EventHandler<RunningTask> {
+    @Override
+    public void onNext(final RunningTask runningTask) {
+      // send events to the task
+      Identifier id = identifierFactory.getNewInstance("SimplePrintEventsTask");
+      networkService.sendEvent(id, new FirstEvent());
+      LOG.log(Level.INFO, "Send FirstEvent");
+      networkService.sendEvent(id, new SecondEvent());
+      LOG.log(Level.INFO, "Send SecondEvent");
     }
   }
 }
