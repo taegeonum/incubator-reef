@@ -48,7 +48,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Naming server implementation.
+ * Naming server implementation
  */
 public class NameServerImpl implements NameServer {
 
@@ -68,9 +68,10 @@ public class NameServerImpl implements NameServer {
    */
   // TODO: All existing NameServer usage is currently new-up, need to make them injected as well.
   @Deprecated
+  @Inject
   public NameServerImpl(
-      final int port,
-      final IdentifierFactory factory,
+      final @Parameter(NameServerParameters.NameServerPort.class) int port,
+      final @Parameter(NameServerParameters.NameServerIdentifierFactory.class) IdentifierFactory factory,
       final LocalAddressProvider localAddressProvider) {
 
     Injector injector = Tang.Factory.getTang().newInjector();

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,47 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network;
+package org.apache.reef.io.network.temp;
 
-import org.apache.reef.exception.evaluator.NetworkException;
-
-import java.util.List;
+import org.apache.reef.io.network.util.StringIdentifierFactory;
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.tang.annotations.NamedParameter;
 
 /**
- * Connection between two end-points named by identifiers.
  *
- * @param <T> type
  */
-public interface Connection<T> extends AutoCloseable {
+public final class NetworkServiceParameters {
 
-  /**
-   * Opens the connection.
-   *
-   * @throws NetworkException
-   */
-  void open() throws NetworkException;
+  @NamedParameter(doc = "port number of NetworkService", default_value = "0")
+  public static final class Port implements Name<Integer> {
 
-  /**
-   * Writes an object to the connection.
-   *
-   * @param obj
-   * @throws NetworkException
-   */
-  void write(T obj) throws NetworkException;
+  }
 
-  /**
-   * Writes objects to the connection.
-   *
-   * @param objs
-   * @throws NetworkException
-   */
-  void write(List<T> objs) throws NetworkException;
+  @NamedParameter(doc = "identifier factory of NetworkService", default_class = StringIdentifierFactory.class)
+  public static final class IdentifierFactory implements Name<org.apache.reef.wake.IdentifierFactory> {
 
-  /**
-   * Closes the connection.
-   *
-   * @throws NetworkException
-   */
-  @Override
-  void close() throws NetworkException;
+  }
 }
