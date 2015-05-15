@@ -244,7 +244,7 @@ public class BroadcastDriver {
           groupCommConfiguredMasterId = contextId;
         }
 
-        final Configuration serviceConf = groupCommDriver.getServiceConfiguration();
+        final Configuration serviceConf = groupCommDriver.getServiceConfiguration(contextId);
         LOG.log(Level.FINER, "Submit GCContext conf: {0}", confSerializer.toString(contextConf));
         LOG.log(Level.FINER, "Submit Service conf: {0}", confSerializer.toString(serviceConf));
 

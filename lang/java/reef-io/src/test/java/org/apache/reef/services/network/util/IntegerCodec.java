@@ -16,29 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.impl;
+package org.apache.reef.services.network.util;
 
-import org.apache.reef.evaluator.context.events.ContextStop;
-import org.apache.reef.io.network.NetworkService;
-import org.apache.reef.wake.EventHandler;
+import org.apache.reef.wake.remote.Codec;
+import org.apache.reef.wake.remote.impl.ObjectSerializableCodec;
 
 import javax.inject.Inject;
 
-public class NetworkServiceClosingHandler implements EventHandler<ContextStop> {
-  private final NetworkService networkService;
+public final class IntegerCodec implements Codec<Integer> {
+
+  private final ObjectSerializableCodec<Integer> obCodec;
 
   @Inject
-  public NetworkServiceClosingHandler(final NetworkService networkService) {
-    this.networkService = networkService;
+  public IntegerCodec() {
+    this.obCodec = new ObjectSerializableCodec<>();
+  }
+  @Override
+  public byte[] encode(Integer obj) {
+    return obCodec.encode(obj);
   }
 
   @Override
-  public void onNext(final ContextStop arg0) {
-    try {
-      networkService.close();
-    } catch (Exception e) {
-      throw new RuntimeException("Exception while closing NetworkService", e);
-    }
+  public Integer decode(byte[] buf) {
+    return obCodec.decode(buf);
   }
-
 }

@@ -18,6 +18,10 @@
  */
 package org.apache.reef.io.network.impl;
 
+import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.NetworkService;
+import org.apache.reef.io.network.config.parameters.NetworkServiceParameters;
+import org.apache.reef.io.network.exception.NetworkRuntimeException;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.task.events.TaskStart;
 import org.apache.reef.wake.EventHandler;
@@ -27,19 +31,24 @@ import javax.inject.Inject;
 
 public class BindNSToTask implements EventHandler<TaskStart> {
 
-  private final NetworkService<?> ns;
+  private final NetworkService ns;
   private final IdentifierFactory idFac;
 
   @Inject
   public BindNSToTask(
-      final NetworkService<?> ns,
-      final @Parameter(NetworkServiceParameters.NetworkServiceIdentifierFactory.class) IdentifierFactory idFac) {
+      final NetworkService ns,
+      final @Parameter(NetworkServiceParameters.IdentifierFactory.class) IdentifierFactory idFac) {
     this.ns = ns;
     this.idFac = idFac;
   }
 
   @Override
   public void onNext(final TaskStart task) {
-    this.ns.registerId(this.idFac.getNewInstance(task.getId()));
+    try {
+      this.ns.registerId(this.idFac.getNewInstance(task.getId()));
+    } catch (NetworkException e) {
+      e.printStackTrace();
+      throw new NetworkRuntimeException(e);
+    }
   }
 }

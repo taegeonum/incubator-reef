@@ -33,6 +33,7 @@ import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.JavaConfigurationBuilder;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Parameter;
+import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.CommandLine;
 import org.apache.reef.util.EnvironmentUtils;
 
@@ -88,7 +89,7 @@ public class BGDClient {
     return DriverLauncher.getLauncher(runtimeConfiguration).run(driverConfiguration, timeout);
   }
 
-  private final Configuration getDriverConfiguration(final String jobName) {
+  private final Configuration getDriverConfiguration(final String jobName) throws InjectionException {
     return Configurations.merge(
         getDataLoadConfiguration(jobName),
         GroupCommService.getConfiguration(fanOut),

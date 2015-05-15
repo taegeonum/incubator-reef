@@ -25,7 +25,11 @@ import org.apache.reef.driver.parameters.ServiceTaskFailedHandlers;
 import org.apache.reef.driver.parameters.TaskRunningHandlers;
 import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
+import org.apache.reef.io.network.NetworkServiceDriverConfigurationBuilder;
+import org.apache.reef.io.network.config.NetworkServiceDriverConfigurationBuilderImpl;
 import org.apache.reef.io.network.group.api.driver.GroupCommServiceDriver;
+import org.apache.reef.io.network.group.impl.GroupCommunicationMessageCodec;
+import org.apache.reef.io.network.group.impl.config.parameters.GroupCommServiceId;
 import org.apache.reef.io.network.group.impl.config.parameters.TreeTopologyFanOut;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.JavaConfigurationBuilder;
@@ -55,8 +59,14 @@ public class GroupCommService {
   }
 
   public static Configuration getConfiguration() {
+    NetworkServiceDriverConfigurationBuilder netBuilder = NetworkServiceDriverConfigurationBuilderImpl.getInstance();
+    netBuilder.setDriverConnectionFactory(GroupCommServiceId.class,
+        GroupCommunicationMessageCodec.class,
+        GroupCommNSMessageHandler.class);
+    Configuration netConf = netBuilder.getDriverConfiguration(GroupCommServiceId.class);
+
     LOG.entering("GroupCommService", "getConfiguration");
-    final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder();
+    final JavaConfigurationBuilder jcb = Tang.Factory.getTang().newConfigurationBuilder(netConf);
     jcb.bindSetEntry(TaskRunningHandlers.class, RunningTaskHandler.class);
     jcb.bindSetEntry(ServiceTaskFailedHandlers.class, FailedTaskHandler.class);
     jcb.bindSetEntry(ServiceEvaluatorFailedHandlers.class, FailedEvaluatorHandler.class);

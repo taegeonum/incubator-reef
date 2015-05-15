@@ -25,20 +25,22 @@ import org.apache.reef.driver.evaluator.FailedEvaluator;
 import org.apache.reef.driver.parameters.DriverIdentifier;
 import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
-import org.apache.reef.io.network.Message;
+import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.ConnectionFactory;
+import org.apache.reef.io.network.NetworkService;
+import org.apache.reef.io.network.NetworkServiceConfigurationBuilder;
 import org.apache.reef.io.network.group.api.driver.CommunicationGroupDriver;
 import org.apache.reef.io.network.group.api.driver.GroupCommServiceDriver;
 import org.apache.reef.io.network.group.impl.GroupCommunicationMessage;
 import org.apache.reef.io.network.group.impl.GroupCommunicationMessageCodec;
+import org.apache.reef.io.network.group.impl.config.parameters.GroupCommServiceId;
 import org.apache.reef.io.network.group.impl.config.parameters.SerializedGroupConfigs;
 import org.apache.reef.io.network.group.impl.config.parameters.TreeTopologyFanOut;
 import org.apache.reef.io.network.group.impl.task.GroupCommNetworkHandlerImpl;
 import org.apache.reef.io.network.group.impl.utils.BroadcastingEventHandler;
 import org.apache.reef.io.network.group.impl.utils.Utils;
-import org.apache.reef.io.network.impl.*;
 import org.apache.reef.io.network.naming.NameServer;
 import org.apache.reef.io.network.naming.NameServerImpl;
-import org.apache.reef.io.network.naming.NameServerParameters;
 import org.apache.reef.io.network.util.StringIdentifierFactory;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.JavaConfigurationBuilder;
@@ -48,16 +50,11 @@ import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.formats.ConfigurationSerializer;
 import org.apache.reef.util.SingletonAsserter;
 import org.apache.reef.wake.EStage;
-import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.IdentifierFactory;
-import org.apache.reef.wake.impl.LoggingEventHandler;
-import org.apache.reef.wake.impl.SingleThreadStage;
 import org.apache.reef.wake.impl.SyncStage;
 import org.apache.reef.wake.impl.ThreadPoolStage;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
 import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
-import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
-import org.apache.reef.wake.remote.transport.TransportFactory;
 
 import javax.inject.Inject;
 import java.util.HashMap;
@@ -91,7 +88,7 @@ public class GroupCommDriverImpl implements GroupCommServiceDriver {
 
   private final ConfigurationSerializer confSerializer;
 
-  private final NetworkService<GroupCommunicationMessage> netService;
+  private final ConnectionFactory<GroupCommunicationMessage> connFactory;
 
   private final EStage<GroupCommunicationMessage> senderStage;
 
@@ -103,8 +100,8 @@ public class GroupCommDriverImpl implements GroupCommServiceDriver {
   private final BroadcastingEventHandler<FailedEvaluator> groupCommFailedEvaluatorHandler;
   private final EStage<FailedEvaluator> groupCommFailedEvaluatorStage;
   private final GroupCommMessageHandler groupCommMessageHandler;
-  private final EStage<GroupCommunicationMessage> groupCommMessageStage;
   private final int fanOut;
+  private final NetworkServiceConfigurationBuilder netServiceBuilder;
 
   /**
    * @deprecated Have an instance injected instead.
@@ -113,8 +110,10 @@ public class GroupCommDriverImpl implements GroupCommServiceDriver {
   @Inject
   public GroupCommDriverImpl(final ConfigurationSerializer confSerializer,
                              @Parameter(DriverIdentifier.class) final String driverId,
-                             @Parameter(TreeTopologyFanOut.class) final int fanOut) {
-    this(confSerializer, driverId, fanOut, LocalAddressProviderFactory.getInstance());
+                             @Parameter(TreeTopologyFanOut.class) final int fanOut,
+                             final NetworkServiceConfigurationBuilder netServiceBuilder,
+                             final NetworkService netService) throws NetworkException {
+    this(confSerializer, driverId, fanOut, netServiceBuilder, netService, new GroupCommMessageHandler(), LocalAddressProviderFactory.getInstance());
   }
 
   /**
@@ -125,20 +124,10 @@ public class GroupCommDriverImpl implements GroupCommServiceDriver {
   public GroupCommDriverImpl(final ConfigurationSerializer confSerializer,
                              @Parameter(DriverIdentifier.class) final String driverId,
                              @Parameter(TreeTopologyFanOut.class) final int fanOut,
-                             final LocalAddressProvider localAddressProvider) {
-    this(confSerializer, driverId, fanOut, localAddressProvider, new MessagingTransportFactory());
-  }
-
-  /**
-   * @deprecated Have an instance injected instead.
-   */
-  @Deprecated
-  @Inject
-  public GroupCommDriverImpl(final ConfigurationSerializer confSerializer,
-                             @Parameter(DriverIdentifier.class) final String driverId,
-                             @Parameter(TreeTopologyFanOut.class) final int fanOut,
-                             final LocalAddressProvider localAddressProvider,
-                             final TransportFactory tpFactory) {
+                             final NetworkServiceConfigurationBuilder netServiceBuilder,
+                             final NetworkService netService,
+                             final GroupCommMessageHandler groupCommMessageHandler,
+                             final LocalAddressProvider localAddressProvider) throws NetworkException {
     assert (SingletonAsserter.assertSingleton(getClass()));
     this.driverId = driverId;
     this.fanOut = fanOut;
@@ -153,18 +142,10 @@ public class GroupCommDriverImpl implements GroupCommServiceDriver {
     this.groupCommFailedEvaluatorHandler = new BroadcastingEventHandler<>();
     this.groupCommFailedEvaluatorStage = new SyncStage<>("GroupCommFailedEvaluatorStage",
         groupCommFailedEvaluatorHandler);
-    this.groupCommMessageHandler = new GroupCommMessageHandler();
-    this.groupCommMessageStage = new SingleThreadStage<>("GroupCommMessageStage", groupCommMessageHandler, 100 * 1000);
-    this.netService = new NetworkService<>(idFac, 0, nameServiceAddr, nameServicePort,
-        new GroupCommunicationMessageCodec(), tpFactory,
-        new EventHandler<Message<GroupCommunicationMessage>>() {
-
-          @Override
-          public void onNext(final Message<GroupCommunicationMessage> msg) {
-            groupCommMessageStage.onNext(Utils.getGCM(msg));
-          }
-        }, new LoggingEventHandler<Exception>(), localAddressProvider);
-    this.netService.registerId(idFac.getNewInstance(driverId));
+    this.groupCommMessageHandler = groupCommMessageHandler;
+    netService.registerId(idFac.getNewInstance(driverId));
+    this.connFactory = netService.newConnectionFactory(GroupCommServiceId.class);
+    this.netServiceBuilder = netServiceBuilder;
     this.senderStage = new ThreadPoolStage<>("SrcCtrlMsgSender", new CtrlMsgSender(idFac, netService), 5);
   }
 
@@ -209,28 +190,18 @@ public class GroupCommDriverImpl implements GroupCommServiceDriver {
   }
 
   @Override
-  public Configuration getServiceConfiguration() {
+  public Configuration getServiceConfiguration(final String contextId) {
     LOG.entering("GroupCommDriverImpl", "getServiceConf");
-    final Configuration serviceConfiguration = ServiceConfiguration.CONF.set(ServiceConfiguration.SERVICES,
-        NetworkService.class)
+    netServiceBuilder.setConnectionFactory(contextId, GroupCommServiceId.class, GroupCommunicationMessageCodec.class,
+        GroupCommNetworkHandlerImpl.class, GroupCommLinkListener.class);
+
+    final Configuration serviceConfiguration = ServiceConfiguration.CONF
         .set(ServiceConfiguration.SERVICES,
-            GroupCommNetworkHandlerImpl.class)
-        .set(ServiceConfiguration.ON_CONTEXT_STOP,
-            NetworkServiceClosingHandler.class)
-        .set(ServiceConfiguration.ON_TASK_STARTED,
-            BindNSToTask.class)
-        .set(ServiceConfiguration.ON_TASK_STOP,
-            UnbindNSFromTask.class).build();
-    final Configuration retVal = tang.newConfigurationBuilder(serviceConfiguration)
-        .bindNamedParameter(NetworkServiceParameters.NetworkServiceCodec.class,
-            GroupCommunicationMessageCodec.class)
-        .bindNamedParameter(NetworkServiceParameters.NetworkServiceHandler.class,
-            GroupCommNetworkHandlerImpl.class)
-        .bindNamedParameter(NetworkServiceParameters.NetworkServiceExceptionHandler.class,
-            ExceptionHandler.class)
-        .bindNamedParameter(NameServerParameters.NameServerAddr.class, nameServiceAddr)
-        .bindNamedParameter(NameServerParameters.NameServerPort.class, Integer.toString(nameServicePort))
-        .bindNamedParameter(NetworkServiceParameters.NetworkServicePort.class, "0").build();
+            GroupCommNetworkHandlerImpl.class).build();
+
+    final Configuration retVal = tang.newConfigurationBuilder(serviceConfiguration,
+        netServiceBuilder.getServiceConfiguration(contextId, GroupCommServiceId.class))
+        .build();
     LOG.exiting("GroupCommDriverImpl", "getServiceConf", confSerializer.toString(retVal));
     return retVal;
   }

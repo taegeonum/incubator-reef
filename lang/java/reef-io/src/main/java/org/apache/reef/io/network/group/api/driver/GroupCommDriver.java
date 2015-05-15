@@ -65,7 +65,7 @@ public interface GroupCommDriver {
    * @return Configuration needed to enable
    * Group Communication as a Service
    */
-  Configuration getServiceConfiguration();
+  Configuration getServiceConfiguration(String contextId);
 
   /**
    * @return Configuration needed for a Task that should have

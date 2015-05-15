@@ -16,29 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.impl;
+package org.apache.reef.io.network.config.parameters;
 
-import org.apache.reef.evaluator.context.events.ContextStop;
-import org.apache.reef.io.network.NetworkService;
-import org.apache.reef.wake.EventHandler;
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.tang.annotations.NamedParameter;
 
-import javax.inject.Inject;
+import java.util.Set;
 
-public class NetworkServiceClosingHandler implements EventHandler<ContextStop> {
-  private final NetworkService networkService;
 
-  @Inject
-  public NetworkServiceClosingHandler(final NetworkService networkService) {
-    this.networkService = networkService;
-  }
-
-  @Override
-  public void onNext(final ContextStop arg0) {
-    try {
-      networkService.close();
-    } catch (Exception e) {
-      throw new RuntimeException("Exception while closing NetworkService", e);
-    }
-  }
+@NamedParameter(doc = "Serialized connection factory configurations")
+public final class SerializedConnFactoryConfigs implements Name<Set<String>> {
 
 }
+
