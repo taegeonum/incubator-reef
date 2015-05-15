@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,47 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network;
+package org.apache.reef.io.network.temp.impl;
 
-import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.wake.EventHandler;
 
-import java.util.List;
+import javax.inject.Inject;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-/**
- * Connection between two end-points named by identifiers.
- *
- * @param <T> type
+/*
+ * Default exception handler
  */
-public interface Connection<T> extends AutoCloseable {
+public final class DefaultNSExceptionHandler implements EventHandler<Exception> {
 
-  /**
-   * Opens the connection.
-   *
-   * @throws NetworkException
-   */
-  void open() throws NetworkException;
+  private static final Logger LOG = Logger.getLogger(DefaultNSExceptionHandler.class.getName());
 
-  /**
-   * Writes an object to the connection.
-   *
-   * @param obj
-   * @throws NetworkException
-   */
-  void write(T obj) throws NetworkException;
+  @Inject
+  public DefaultNSExceptionHandler() {
+  }
 
-  /**
-   * Writes objects to the connection.
-   *
-   * @param objs
-   * @throws NetworkException
-   */
-  void write(List<T> objs) throws NetworkException;
-
-  /**
-   * Closes the connection.
-   *
-   * @throws NetworkException
-   */
   @Override
-  void close() throws NetworkException;
+  public void onNext(Exception value) {
+    LOG.log(Level.WARNING, "An exception occurred in transport of NetworkService: {0}", value);
+  }
 }

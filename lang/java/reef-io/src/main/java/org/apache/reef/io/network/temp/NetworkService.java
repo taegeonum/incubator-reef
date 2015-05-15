@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,47 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network;
+package org.apache.reef.io.network.temp;
 
 import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.ConnectionFactory;
+import org.apache.reef.io.network.temp.impl.DefaultNetworkServiceImpl;
+import org.apache.reef.tang.annotations.DefaultImplementation;
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.wake.Identifier;
+import org.apache.reef.wake.Stage;
 
-import java.util.List;
+import java.net.SocketAddress;
 
-/**
- * Connection between two end-points named by identifiers.
- *
- * @param <T> type
- */
-public interface Connection<T> extends AutoCloseable {
+@DefaultImplementation(DefaultNetworkServiceImpl.class)
+public interface NetworkService extends Stage {
 
-  /**
-   * Opens the connection.
-   *
-   * @throws NetworkException
-   */
-  void open() throws NetworkException;
+  public <T> ConnectionFactory<T> newConnectionFactory(final Class<? extends Name<String>> connectionFactoryName);
 
-  /**
-   * Writes an object to the connection.
-   *
-   * @param obj
-   * @throws NetworkException
-   */
-  void write(T obj) throws NetworkException;
+  public void registerId(final Identifier taskId) throws NetworkException;
 
-  /**
-   * Writes objects to the connection.
-   *
-   * @param objs
-   * @throws NetworkException
-   */
-  void write(List<T> objs) throws NetworkException;
+  public Identifier getNetworkServiceId();
 
-  /**
-   * Closes the connection.
-   *
-   * @throws NetworkException
-   */
-  @Override
-  void close() throws NetworkException;
+  public SocketAddress getLocalAddress();
 }

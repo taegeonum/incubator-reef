@@ -16,47 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network;
+package org.apache.reef.services.network.util;
 
-import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.wake.remote.Codec;
+import org.apache.reef.wake.remote.impl.ObjectSerializableCodec;
 
-import java.util.List;
+import javax.inject.Inject;
 
-/**
- * Connection between two end-points named by identifiers.
- *
- * @param <T> type
- */
-public interface Connection<T> extends AutoCloseable {
+public final class IntegerCodec implements Codec<Integer> {
 
-  /**
-   * Opens the connection.
-   *
-   * @throws NetworkException
-   */
-  void open() throws NetworkException;
+  private final ObjectSerializableCodec<Integer> obCodec;
 
-  /**
-   * Writes an object to the connection.
-   *
-   * @param obj
-   * @throws NetworkException
-   */
-  void write(T obj) throws NetworkException;
-
-  /**
-   * Writes objects to the connection.
-   *
-   * @param objs
-   * @throws NetworkException
-   */
-  void write(List<T> objs) throws NetworkException;
-
-  /**
-   * Closes the connection.
-   *
-   * @throws NetworkException
-   */
+  @Inject
+  public IntegerCodec() {
+    this.obCodec = new ObjectSerializableCodec<>();
+  }
   @Override
-  void close() throws NetworkException;
+  public byte[] encode(Integer obj) {
+    return obCodec.encode(obj);
+  }
+
+  @Override
+  public Integer decode(byte[] buf) {
+    return obCodec.decode(buf);
+  }
 }

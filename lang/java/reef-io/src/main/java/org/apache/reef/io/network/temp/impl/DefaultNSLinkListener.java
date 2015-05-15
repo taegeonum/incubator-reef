@@ -16,47 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network;
+package org.apache.reef.io.network.temp.impl;
 
-import org.apache.reef.exception.evaluator.NetworkException;
 
-import java.util.List;
+import org.apache.reef.wake.remote.transport.LinkListener;
 
-/**
- * Connection between two end-points named by identifiers.
- *
- * @param <T> type
- */
-public interface Connection<T> extends AutoCloseable {
+import javax.inject.Inject;
+import java.net.SocketAddress;
 
-  /**
-   * Opens the connection.
-   *
-   * @throws NetworkException
-   */
-  void open() throws NetworkException;
+public final class DefaultNSLinkListener implements LinkListener<NetworkEvent<?>> {
 
-  /**
-   * Writes an object to the connection.
-   *
-   * @param obj
-   * @throws NetworkException
-   */
-  void write(T obj) throws NetworkException;
+  @Inject
+  public DefaultNSLinkListener() {
 
-  /**
-   * Writes objects to the connection.
-   *
-   * @param objs
-   * @throws NetworkException
-   */
-  void write(List<T> objs) throws NetworkException;
+  }
 
-  /**
-   * Closes the connection.
-   *
-   * @throws NetworkException
-   */
   @Override
-  void close() throws NetworkException;
+  public void onSuccess(NetworkEvent<?> message) {
+    // do nothing
+  }
+
+  @Override
+  public void onException(Throwable cause, SocketAddress remoteAddress, NetworkEvent<?> message) {
+    // do nothing
+  }
 }
