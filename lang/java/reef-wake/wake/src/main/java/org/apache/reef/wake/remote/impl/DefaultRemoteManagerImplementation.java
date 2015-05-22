@@ -28,6 +28,8 @@ import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
 import org.apache.reef.wake.remote.ports.RangeTcpPortProvider;
 import org.apache.reef.wake.remote.ports.TcpPortProvider;
 import org.apache.reef.wake.remote.transport.Transport;
+import org.apache.reef.wake.remote.transport.TransportFactory;
+import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
 import org.apache.reef.wake.remote.transport.netty.NettyMessagingTransport;
 
 import javax.inject.Inject;
@@ -96,6 +98,35 @@ public class DefaultRemoteManagerImplementation implements RemoteManager {
    * @deprecated have an instance injected instead.
    */
   @Deprecated
+  public <T> DefaultRemoteManagerImplementation(
+      final String name,
+      final String hostAddress,
+      final int listeningPort,
+      final Codec<T> codec,
+      final EventHandler<Throwable> errorHandler,
+      final boolean orderingGuarantee,
+      final int numberOfTries,
+      final int retryTimeout,
+      final LocalAddressProvider localAddressProvider,
+      final TcpPortProvider tcpPortProvider) {
+    this(name,
+        hostAddress,
+        listeningPort,
+        codec,
+        errorHandler,
+        orderingGuarantee,
+        numberOfTries,
+        retryTimeout,
+        LocalAddressProviderFactory.getInstance(),
+        RangeTcpPortProvider.Default,
+        new MessagingTransportFactory()
+    );
+  }
+
+  /**
+   * @deprecated have an instance injected instead.
+   */
+  @Deprecated
   @Inject
   public <T> DefaultRemoteManagerImplementation(
       final @Parameter(RemoteConfiguration.ManagerName.class) String name,
@@ -107,7 +138,8 @@ public class DefaultRemoteManagerImplementation implements RemoteManager {
       final @Parameter(RemoteConfiguration.NumberOfTries.class) int numberOfTries,
       final @Parameter(RemoteConfiguration.RetryTimeout.class) int retryTimeout,
       final LocalAddressProvider localAddressProvider,
-      final TcpPortProvider tcpPortProvider) {
+      final TcpPortProvider tcpPortProvider,
+      final TransportFactory tpFactory) {
 
     this.name = name;
     this.handlerContainer = new HandlerContainer<>(name, codec);
@@ -116,8 +148,7 @@ public class DefaultRemoteManagerImplementation implements RemoteManager {
         new OrderedRemoteReceiverStage(this.handlerContainer, errorHandler) :
         new RemoteReceiverStage(this.handlerContainer, errorHandler, 10);
 
-    this.transport = new NettyMessagingTransport(
-        hostAddress, listeningPort, this.reRecvStage, this.reRecvStage, numberOfTries, retryTimeout, tcpPortProvider, localAddressProvider);
+    this.transport = tpFactory.getInstance(hostAddress, listeningPort, this.reRecvStage, this.reRecvStage, numberOfTries, retryTimeout, tcpPortProvider);
 
     this.handlerContainer.setTransport(this.transport);
 

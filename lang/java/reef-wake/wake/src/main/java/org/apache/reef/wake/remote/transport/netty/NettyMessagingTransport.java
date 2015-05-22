@@ -68,15 +68,7 @@ public class NettyMessagingTransport implements Transport {
   private static final String CLASS_NAME = NettyMessagingTransport.class.getName();
   private static final Logger LOG = Logger.getLogger(CLASS_NAME);
 
-  private static final int SERVER_BOSS_NUM_THREADS = 3;
-  private static final int SERVER_WORKER_NUM_THREADS = 20;
-  private static final int CLIENT_WORKER_NUM_THREADS = 10;
-
   private final ConcurrentMap<SocketAddress, LinkReference> addrToLinkRefMap = new ConcurrentHashMap<>();
-
-  private final EventLoopGroup clientWorkerGroup;
-  private final EventLoopGroup serverBossGroup;
-  private final EventLoopGroup serverWorkerGroup;
 
   private final Bootstrap clientBootstrap;
   private final ServerBootstrap serverBootstrap;
@@ -93,11 +85,11 @@ public class NettyMessagingTransport implements Transport {
 
   private final int numberOfTries;
   private final int retryTimeout;
+
   /**
    * Indicates a hostname that isn't set or known.
    */
   public static final String UNKNOWN_HOST_NAME = "##UNKNOWN##";
-
 
   /**
    * Constructs a messaging transport
@@ -112,7 +104,6 @@ public class NettyMessagingTransport implements Transport {
    * @deprecated use the constructor that takes a LocalAddressProvider instead.
    */
   @Deprecated
-  @Inject
   public NettyMessagingTransport(
       final @Parameter(RemoteConfiguration.HostAddress.class) String hostAddress,
       @Parameter(RemoteConfiguration.Port.class) int port,
@@ -123,8 +114,9 @@ public class NettyMessagingTransport implements Transport {
       final TcpPortProvider tcpPortProvider) {
 
     this(hostAddress, port, clientStage, serverStage, numberOfTries,
-        retryTimeout, tcpPortProvider, LocalAddressProviderFactory.getInstance());
+        retryTimeout, tcpPortProvider, LocalAddressProviderFactory.getInstance(), new SharedNioEventLoopGroup());
   }
+
   /**
    * Constructs a messaging transport
    *
@@ -138,7 +130,6 @@ public class NettyMessagingTransport implements Transport {
    * @deprecated have an instance injected instead.
    */
   @Deprecated
-  @Inject
   public NettyMessagingTransport(
       final @Parameter(RemoteConfiguration.HostAddress.class) String hostAddress,
       @Parameter(RemoteConfiguration.Port.class) int port,
@@ -148,7 +139,37 @@ public class NettyMessagingTransport implements Transport {
       final @Parameter(RemoteConfiguration.RetryTimeout.class) int retryTimeout,
       final TcpPortProvider tcpPortProvider,
       final LocalAddressProvider localAddressProvider) {
+    this(hostAddress, port, clientStage, serverStage, numberOfTries,
+        retryTimeout, tcpPortProvider, localAddressProvider, new SharedNioEventLoopGroup());
+  }
 
+  /**
+   * Constructs a messaging transport
+   *
+   * @param hostAddress   the server host address
+   * @param remotePort          the server listening port; when it is 0, randomly assign a port number
+   * @param clientStage   the client-side stage that handles transport events
+   * @param serverStage   the server-side stage that handles transport events
+   * @param numberOfTries the number of tries of connection
+   * @param retryTimeout  the timeout of reconnection
+   * @param tcpPortProvider  gives an iterator that produces random tcp ports in a range
+   * @param sharedNioEventLoopGroup gives shared NioEventLoopGroups
+   * @deprecated have an instance injected instead.
+   */
+  @Deprecated
+  @Inject
+  public NettyMessagingTransport(
+      final @Parameter(RemoteConfiguration.HostAddress.class) String hostAddress,
+      final @Parameter(RemoteConfiguration.Port.class) int remotePort,
+      final @Parameter(RemoteConfiguration.RemoteClientStage.class) EStage<TransportEvent> clientStage,
+      final @Parameter(RemoteConfiguration.RemoteServerStage.class) EStage<TransportEvent> serverStage,
+      final @Parameter(RemoteConfiguration.NumberOfTries.class) int numberOfTries,
+      final @Parameter(RemoteConfiguration.RetryTimeout.class) int retryTimeout,
+      final TcpPortProvider tcpPortProvider,
+      final LocalAddressProvider localAddressProvider,
+      final SharedNioEventLoopGroup sharedNioEventLoopGroup) {
+
+    int port = remotePort;
     if (port < 0) {
       throw new RemoteRuntimeException("Invalid server port: " + port);
     }
@@ -160,12 +181,12 @@ public class NettyMessagingTransport implements Transport {
     this.clientEventListener = new NettyClientEventListener(this.addrToLinkRefMap, clientStage);
     this.serverEventListener = new NettyServerEventListener(this.addrToLinkRefMap, serverStage);
 
-    this.serverBossGroup = new NioEventLoopGroup(SERVER_BOSS_NUM_THREADS, new DefaultThreadFactory(CLASS_NAME + "ServerBoss"));
-    this.serverWorkerGroup = new NioEventLoopGroup(SERVER_WORKER_NUM_THREADS, new DefaultThreadFactory(CLASS_NAME + "ServerWorker"));
-    this.clientWorkerGroup = new NioEventLoopGroup(CLIENT_WORKER_NUM_THREADS, new DefaultThreadFactory(CLASS_NAME + "ClientWorker"));
+    final NioEventLoopGroup serverBossGroup = sharedNioEventLoopGroup.getServerBossGroup();
+    final NioEventLoopGroup serverWorkerGroup = sharedNioEventLoopGroup.getServerWorkerGroup();
+    final NioEventLoopGroup clientWorkerGroup = sharedNioEventLoopGroup.getClientWorkerGroup();
 
     this.clientBootstrap = new Bootstrap();
-    this.clientBootstrap.group(this.clientWorkerGroup)
+    this.clientBootstrap.group(clientWorkerGroup)
         .channel(NioSocketChannel.class)
         .handler(new NettyChannelInitializer(new NettyDefaultChannelHandlerFactory("client",
             this.clientChannelGroup, this.clientEventListener)))
@@ -173,7 +194,7 @@ public class NettyMessagingTransport implements Transport {
         .option(ChannelOption.SO_KEEPALIVE, true);
 
     this.serverBootstrap = new ServerBootstrap();
-    this.serverBootstrap.group(this.serverBossGroup, this.serverWorkerGroup)
+    this.serverBootstrap.group(serverBossGroup, serverWorkerGroup)
         .channel(NioServerSocketChannel.class)
         .childHandler(new NettyChannelInitializer(new NettyDefaultChannelHandlerFactory("server",
             this.serverChannelGroup, this.serverEventListener)))
@@ -207,11 +228,8 @@ public class NettyMessagingTransport implements Transport {
   } catch (final Exception ex) {
     final RuntimeException transportException =
        new TransportRuntimeException("Cannot bind to port " + port);
-    LOG.log(Level.SEVERE, "Cannot bind to port " + port, ex);
 
-      this.clientWorkerGroup.shutdownGracefully();
-      this.serverBossGroup.shutdownGracefully();
-      this.serverWorkerGroup.shutdownGracefully();
+      LOG.log(Level.SEVERE, "Cannot bind to port " + port, ex);
       throw transportException;
     }
 
@@ -254,9 +272,6 @@ public class NettyMessagingTransport implements Transport {
     this.clientChannelGroup.close().awaitUninterruptibly();
     this.serverChannelGroup.close().awaitUninterruptibly();
     this.acceptor.close().sync();
-    this.clientWorkerGroup.shutdownGracefully();
-    this.serverBossGroup.shutdownGracefully();
-    this.serverWorkerGroup.shutdownGracefully();
 
     LOG.log(Level.FINE, "Closing netty transport socket address: {0} done", this.localAddress);
   }

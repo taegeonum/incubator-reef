@@ -27,6 +27,7 @@ import org.apache.reef.wake.remote.impl.TransportEvent;
 import org.apache.reef.wake.remote.ports.RangeTcpPortProvider;
 import org.apache.reef.wake.remote.ports.TcpPortProvider;
 import org.apache.reef.wake.remote.transport.Transport;
+import org.apache.reef.wake.remote.transport.TransportFactory;
 
 import javax.inject.Inject;
 
@@ -36,14 +37,31 @@ import javax.inject.Inject;
 public class MessagingTransportFactory implements TransportFactory {
 
   private final String localAddress;
+  private final LocalAddressProvider addressProvider;
+  private final SharedNioEventLoopGroup sharedNioEventLoopGroup;
 
   /**
    * @deprecated Have an instance injected instead.
    */
   @Deprecated
   @Inject
-  public MessagingTransportFactory(final LocalAddressProvider localAddressProvider) {
+  public MessagingTransportFactory(
+      final LocalAddressProvider localAddressProvider,
+      final SharedNioEventLoopGroup sharedNioEventLoopGroup) {
     this.localAddress = localAddressProvider.getLocalAddress();
+    this.sharedNioEventLoopGroup = sharedNioEventLoopGroup;
+    this.addressProvider = localAddressProvider;
+  }
+
+  /**
+   * @deprecated Have an instance injected instead.
+   */
+  @Deprecated
+  public MessagingTransportFactory(
+      final LocalAddressProvider localAddressProvider) {
+    this.localAddress = localAddressProvider.getLocalAddress();
+    this.addressProvider = localAddressProvider;
+    this.sharedNioEventLoopGroup = new SharedNioEventLoopGroup();
   }
 
   /**
@@ -52,6 +70,8 @@ public class MessagingTransportFactory implements TransportFactory {
   @Deprecated
   public MessagingTransportFactory() {
     this.localAddress = LocalAddressProviderFactory.getInstance().getLocalAddress();
+    this.sharedNioEventLoopGroup = new SharedNioEventLoopGroup();
+    this.addressProvider = LocalAddressProviderFactory.getInstance();
   }
 
   /**
@@ -98,7 +118,8 @@ public class MessagingTransportFactory implements TransportFactory {
         serverStage,
         numberOfTries,
         retryTimeout,
-        tcpPortProvider);
+        tcpPortProvider,
+        addressProvider,
+        sharedNioEventLoopGroup);
   }
-
 }

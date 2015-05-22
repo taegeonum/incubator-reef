@@ -33,7 +33,7 @@ import org.apache.reef.wake.remote.impl.TransportEvent;
 import org.apache.reef.wake.remote.transport.Transport;
 import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
 import org.apache.reef.wake.remote.transport.netty.NettyMessagingTransport;
-import org.apache.reef.wake.remote.transport.netty.TransportFactory;
+import org.apache.reef.wake.remote.transport.TransportFactory;
 import org.apache.reef.webserver.AvroReefServiceInfo;
 import org.apache.reef.webserver.ReefEventStateManager;
 

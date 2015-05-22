@@ -57,7 +57,7 @@ import org.apache.reef.wake.impl.ThreadPoolStage;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
 import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
 import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
-import org.apache.reef.wake.remote.transport.netty.TransportFactory;
+import org.apache.reef.wake.remote.transport.TransportFactory;
 
 import javax.inject.Inject;
 import java.util.HashMap;

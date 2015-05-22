@@ -40,7 +40,7 @@ import org.apache.reef.wake.remote.transport.Link;
 import org.apache.reef.wake.remote.transport.Transport;
 import org.apache.reef.wake.remote.transport.netty.LoggingLinkListener;
 import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
-import org.apache.reef.wake.remote.transport.netty.TransportFactory;
+import org.apache.reef.wake.remote.transport.TransportFactory;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;

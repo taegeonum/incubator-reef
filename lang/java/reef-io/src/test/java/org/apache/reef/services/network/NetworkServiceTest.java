@@ -28,12 +28,14 @@ import org.apache.reef.io.network.naming.NameServerImpl;
 import org.apache.reef.io.network.util.StringIdentifierFactory;
 import org.apache.reef.services.network.util.Monitor;
 import org.apache.reef.services.network.util.StringCodec;
-import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
 import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
+import org.apache.reef.wake.remote.transport.netty.SharedNioEventLoopGroup;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -50,16 +52,26 @@ import java.util.logging.Logger;
 public class NetworkServiceTest {
   private static final Logger LOG = Logger.getLogger(NetworkServiceTest.class.getName());
 
-  private final LocalAddressProvider localAddressProvider;
-  private final String localAddress;
-
-  public NetworkServiceTest() throws InjectionException {
-    localAddressProvider = LocalAddressProviderFactory.getInstance();
-    localAddress = localAddressProvider.getLocalAddress();
-  }
+  private static MessagingTransportFactory tpFactory;
+  private static SharedNioEventLoopGroup sharedNioEventLoopGroup;
+  private static LocalAddressProvider localAddressProvider;
+  private static String localAddress;
 
   @Rule
   public TestName name = new TestName();
+
+  @BeforeClass
+  public static void setupInstances() {
+    localAddressProvider = LocalAddressProviderFactory.getInstance();
+    localAddress = localAddressProvider.getLocalAddress();
+    sharedNioEventLoopGroup = new SharedNioEventLoopGroup();
+    tpFactory = new MessagingTransportFactory(localAddressProvider, sharedNioEventLoopGroup);
+  }
+
+  @AfterClass
+  public static void cleanupInstances() {
+    sharedNioEventLoopGroup.close();
+  }
 
   /**
    * NetworkService messaging test
@@ -81,7 +93,7 @@ public class NetworkServiceTest {
     final String name2 = "task2";
     NetworkService<String> ns2 = new NetworkService<String>(
         factory, 0, this.localAddress, nameServerPort,
-        new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+        new StringCodec(), tpFactory,
         new MessageHandler<String>(name2, monitor, numMessages), new ExceptionHandler(), localAddressProvider);
     ns2.registerId(factory.getNewInstance(name2));
     final int port2 = ns2.getTransport().getListeningPort();
@@ -90,7 +102,7 @@ public class NetworkServiceTest {
     LOG.log(Level.FINEST, "=== Test network service sender start");
     final String name1 = "task1";
     final NetworkService<String> ns1 = new NetworkService<String>(factory, 0, this.localAddress, nameServerPort,
-        new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+        new StringCodec(), tpFactory,
         new MessageHandler<String>(name1, null, 0), new ExceptionHandler(), localAddressProvider);
     ns1.registerId(factory.getNewInstance(name1));
     final int port1 = ns1.getTransport().getListeningPort();
@@ -139,7 +151,7 @@ public class NetworkServiceTest {
       final String name2 = "task2";
       NetworkService<String> ns2 = new NetworkService<String>(
           factory, 0, this.localAddress, nameServerPort,
-          new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+          new StringCodec(), tpFactory,
           new MessageHandler<String>(name2, monitor, numMessages), new ExceptionHandler(), localAddressProvider);
       ns2.registerId(factory.getNewInstance(name2));
       final int port2 = ns2.getTransport().getListeningPort();
@@ -149,7 +161,7 @@ public class NetworkServiceTest {
       final String name1 = "task1";
       NetworkService<String> ns1 = new NetworkService<String>(
           factory, 0, this.localAddress, nameServerPort,
-          new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+          new StringCodec(), tpFactory,
           new MessageHandler<String>(name1, null, 0), new ExceptionHandler(), localAddressProvider);
       ns1.registerId(factory.getNewInstance(name1));
       final int port1 = ns1.getTransport().getListeningPort();
@@ -220,7 +232,7 @@ public class NetworkServiceTest {
             final String name2 = "task2-" + tt;
             NetworkService<String> ns2 = new NetworkService<String>(
                 factory, 0, localAddress, nameServerPort,
-                new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+                new StringCodec(), tpFactory,
                 new MessageHandler<String>(name2, monitor, numMessages), new ExceptionHandler(), localAddressProvider);
             ns2.registerId(factory.getNewInstance(name2));
             final int port2 = ns2.getTransport().getListeningPort();
@@ -230,7 +242,7 @@ public class NetworkServiceTest {
             final String name1 = "task1-" + tt;
             NetworkService<String> ns1 = new NetworkService<String>(
                 factory, 0, localAddress, nameServerPort,
-                new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+                new StringCodec(), tpFactory,
                 new MessageHandler<String>(name1, null, 0), new ExceptionHandler(), localAddressProvider);
             ns1.registerId(factory.getNewInstance(name1));
             final int port1 = ns1.getTransport().getListeningPort();
@@ -304,7 +316,7 @@ public class NetworkServiceTest {
       final String name2 = "task2";
       NetworkService<String> ns2 = new NetworkService<String>(
           factory, 0, this.localAddress, nameServerPort,
-          new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+          new StringCodec(), tpFactory,
           new MessageHandler<String>(name2, monitor, totalNumMessages), new ExceptionHandler(), localAddressProvider);
       ns2.registerId(factory.getNewInstance(name2));
       final int port2 = ns2.getTransport().getListeningPort();
@@ -314,7 +326,7 @@ public class NetworkServiceTest {
       final String name1 = "task1";
       NetworkService<String> ns1 = new NetworkService<String>(
           factory, 0, this.localAddress, nameServerPort,
-          new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+          new StringCodec(), tpFactory,
           new MessageHandler<String>(name1, null, 0), new ExceptionHandler(), localAddressProvider);
       ns1.registerId(factory.getNewInstance(name1));
       final int port1 = ns1.getTransport().getListeningPort();
@@ -392,7 +404,7 @@ public class NetworkServiceTest {
       final String name2 = "task2";
       NetworkService<String> ns2 = new NetworkService<String>(
           factory, 0, this.localAddress, nameServerPort,
-          new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+          new StringCodec(), tpFactory,
           new MessageHandler<String>(name2, monitor, numMessages), new ExceptionHandler(), localAddressProvider);
       ns2.registerId(factory.getNewInstance(name2));
       final int port2 = ns2.getTransport().getListeningPort();
@@ -402,7 +414,7 @@ public class NetworkServiceTest {
       final String name1 = "task1";
       NetworkService<String> ns1 = new NetworkService<String>(
           factory, 0, this.localAddress, nameServerPort,
-          new StringCodec(), new MessagingTransportFactory(localAddressProvider),
+          new StringCodec(), tpFactory,
           new MessageHandler<String>(name1, null, 0), new ExceptionHandler(), localAddressProvider);
       ns1.registerId(factory.getNewInstance(name1));
       final int port1 = ns1.getTransport().getListeningPort();

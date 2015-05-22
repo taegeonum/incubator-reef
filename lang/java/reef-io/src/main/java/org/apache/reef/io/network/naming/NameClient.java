@@ -35,7 +35,7 @@ import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
 import org.apache.reef.wake.remote.impl.TransportEvent;
 import org.apache.reef.wake.remote.transport.Transport;
 import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
-import org.apache.reef.wake.remote.transport.netty.TransportFactory;
+import org.apache.reef.wake.remote.transport.TransportFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

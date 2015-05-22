@@ -23,7 +23,7 @@ import org.apache.reef.io.naming.Naming;
 import org.apache.reef.io.network.Connection;
 import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.Message;
-import org.apache.reef.wake.remote.transport.netty.TransportFactory;
+import org.apache.reef.wake.remote.transport.TransportFactory;
 import org.apache.reef.io.network.naming.NameCache;
 import org.apache.reef.io.network.naming.NameClient;
 import org.apache.reef.io.network.naming.NameLookupClient;

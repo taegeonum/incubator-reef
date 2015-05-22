@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.wake.remote.transport.netty;
+package org.apache.reef.wake.remote.transport;
 
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.wake.EStage;
@@ -24,6 +24,7 @@ import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.remote.impl.TransportEvent;
 import org.apache.reef.wake.remote.ports.TcpPortProvider;
 import org.apache.reef.wake.remote.transport.Transport;
+import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
 
 /**
  * Factory that creates a transport
