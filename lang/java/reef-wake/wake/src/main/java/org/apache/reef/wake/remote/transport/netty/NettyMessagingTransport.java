@@ -23,7 +23,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -33,7 +32,6 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
-import org.apache.reef.wake.impl.DefaultThreadFactory;
 import org.apache.reef.wake.remote.Encoder;
 import org.apache.reef.wake.remote.RemoteConfiguration;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
@@ -105,16 +103,16 @@ public class NettyMessagingTransport implements Transport {
    */
   @Deprecated
   public NettyMessagingTransport(
-      final @Parameter(RemoteConfiguration.HostAddress.class) String hostAddress,
-      @Parameter(RemoteConfiguration.Port.class) int port,
-      final @Parameter(RemoteConfiguration.RemoteClientStage.class) EStage<TransportEvent> clientStage,
-      final @Parameter(RemoteConfiguration.RemoteServerStage.class) EStage<TransportEvent> serverStage,
-      final @Parameter(RemoteConfiguration.NumberOfTries.class) int numberOfTries,
-      final @Parameter(RemoteConfiguration.RetryTimeout.class) int retryTimeout,
+      final String hostAddress,
+      int port,
+      final EStage<TransportEvent> clientStage,
+      final EStage<TransportEvent> serverStage,
+      final int numberOfTries,
+      final int retryTimeout,
       final TcpPortProvider tcpPortProvider) {
 
     this(hostAddress, port, clientStage, serverStage, numberOfTries,
-        retryTimeout, tcpPortProvider, LocalAddressProviderFactory.getInstance(), new SharedNioEventLoopGroup());
+        retryTimeout, tcpPortProvider, LocalAddressProviderFactory.getInstance(), new DefaultNettyNioEventLoopGroupProvider(3, 20, 20));
   }
 
   /**
@@ -131,16 +129,16 @@ public class NettyMessagingTransport implements Transport {
    */
   @Deprecated
   public NettyMessagingTransport(
-      final @Parameter(RemoteConfiguration.HostAddress.class) String hostAddress,
-      @Parameter(RemoteConfiguration.Port.class) int port,
-      final @Parameter(RemoteConfiguration.RemoteClientStage.class) EStage<TransportEvent> clientStage,
-      final @Parameter(RemoteConfiguration.RemoteServerStage.class) EStage<TransportEvent> serverStage,
-      final @Parameter(RemoteConfiguration.NumberOfTries.class) int numberOfTries,
-      final @Parameter(RemoteConfiguration.RetryTimeout.class) int retryTimeout,
+      final String hostAddress,
+      int port,
+      final EStage<TransportEvent> clientStage,
+      final EStage<TransportEvent> serverStage,
+      final int numberOfTries,
+      final int retryTimeout,
       final TcpPortProvider tcpPortProvider,
       final LocalAddressProvider localAddressProvider) {
     this(hostAddress, port, clientStage, serverStage, numberOfTries,
-        retryTimeout, tcpPortProvider, localAddressProvider, new SharedNioEventLoopGroup());
+        retryTimeout, tcpPortProvider, localAddressProvider, new DefaultNettyNioEventLoopGroupProvider(3, 20, 20));
   }
 
   /**
@@ -167,7 +165,7 @@ public class NettyMessagingTransport implements Transport {
       final @Parameter(RemoteConfiguration.RetryTimeout.class) int retryTimeout,
       final TcpPortProvider tcpPortProvider,
       final LocalAddressProvider localAddressProvider,
-      final SharedNioEventLoopGroup sharedNioEventLoopGroup) {
+      final NettyNioEventLoopGroupProvider sharedNioEventLoopGroup) {
 
     int port = remotePort;
     if (port < 0) {

@@ -19,11 +19,9 @@
 package org.apache.reef.wake.remote.transport.netty;
 
 import io.netty.channel.nio.NioEventLoopGroup;
-import org.apache.reef.tang.Injector;
-import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
-import org.apache.reef.tang.exceptions.InjectionException;
+import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.wake.impl.DefaultThreadFactory;
 
 import javax.inject.Inject;
@@ -32,29 +30,26 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Singleton instance for sharing NioEventLoopGroup
+ * Default NioEventLoopGroup provider
  */
-public final class SharedNioEventLoopGroup implements AutoCloseable {
+public final class DefaultNettyNioEventLoopGroupProvider implements NettyNioEventLoopGroupProvider {
 
-  private static final String CLASS_NAME = SharedNioEventLoopGroup.class.getName();
+  private static final String CLASS_NAME = DefaultNettyNioEventLoopGroupProvider.class.getName();
   private static final Logger LOG = Logger.getLogger(CLASS_NAME);
 
-  private static final int SERVER_BOSS_NUM_THREADS;
-  private static final int SERVER_WORKER_NUM_THREADS;
-  private static final int CLIENT_WORKER_NUM_THREADS;
 
-  static {
-    try {
-      final Injector injector = Tang.Factory.getTang().newInjector();
-      SERVER_BOSS_NUM_THREADS = injector.getNamedInstance(ServerBossThreadNumber.class);
-      SERVER_WORKER_NUM_THREADS = injector.getNamedInstance(ServerWorkerThreadNumber.class);
-      CLIENT_WORKER_NUM_THREADS = injector.getNamedInstance(ClientWorkerThreadNumber.class);
-    } catch (final InjectionException e) {
-      final String exceptionMessage = "Exception occurred when injecting SharedNioEventLoopGroup";
-      LOG.log(Level.SEVERE, exceptionMessage, e);
-      throw new RuntimeException(exceptionMessage, e);
-    }
+  @NamedParameter(doc = "the number of thread of server boss NioEventGroup", default_value = "3")
+  public class ServerBossThreadNumber implements Name<Integer> {
   }
+
+  @NamedParameter(doc = "the number of thread of server worker NioEventGroup", default_value = "20")
+  public class ServerWorkerThreadNumber implements Name<Integer> {
+  }
+
+  @NamedParameter(doc = "the number of thread of client worker NioEventGroup", default_value = "10")
+  public class ClientWorkerThreadNumber implements Name<Integer> {
+  }
+
 
   private final NioEventLoopGroup serverBossGroup;
   private final NioEventLoopGroup serverWorkerGroup;
@@ -62,12 +57,19 @@ public final class SharedNioEventLoopGroup implements AutoCloseable {
 
   private AtomicBoolean closed;
 
+  /*
+   * @deprecated have an instance injected instead.
+   */
+  @Deprecated
   @Inject
-  public SharedNioEventLoopGroup() {
+  public DefaultNettyNioEventLoopGroupProvider(
+      final @Parameter(ServerBossThreadNumber.class) int serverBossThreadNumber,
+      final @Parameter(ServerWorkerThreadNumber.class) int serverWorkerThreadNumber,
+      final @Parameter(ClientWorkerThreadNumber.class) int clientWorkerThreadNumber) {
     this.closed = new AtomicBoolean();
-    this.serverBossGroup = new NioEventLoopGroup(SERVER_BOSS_NUM_THREADS, new DefaultThreadFactory(CLASS_NAME + "ServerBoss"));
-    this.serverWorkerGroup = new NioEventLoopGroup(SERVER_WORKER_NUM_THREADS, new DefaultThreadFactory(CLASS_NAME + "ServerWorker"));
-    this.clientWorkerGroup = new NioEventLoopGroup(CLIENT_WORKER_NUM_THREADS, new DefaultThreadFactory(CLASS_NAME + "ClientWorker"));
+    this.serverBossGroup = new NioEventLoopGroup(serverBossThreadNumber, new DefaultThreadFactory(CLASS_NAME + "ServerBoss"));
+    this.serverWorkerGroup = new NioEventLoopGroup(serverWorkerThreadNumber, new DefaultThreadFactory(CLASS_NAME + "ServerWorker"));
+    this.clientWorkerGroup = new NioEventLoopGroup(clientWorkerThreadNumber, new DefaultThreadFactory(CLASS_NAME + "ClientWorker"));
     addShutdownHook();
   }
 
@@ -99,17 +101,17 @@ public final class SharedNioEventLoopGroup implements AutoCloseable {
   }
 
   /**
-   * close NioEventLoopGroups and release resources
+   * close DefaultNettyNioEventLoopGroupProvider and release resources
    */
   @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
-      LOG.log(Level.FINE, "Close SharedNioEventLoopGroup");
+      LOG.log(Level.FINE, "Close DefaultNettyNioEventLoopGroupProvider");
       serverBossGroup.shutdownGracefully();
       serverWorkerGroup.shutdownGracefully();
       clientWorkerGroup.shutdownGracefully();
     } else {
-      LOG.log(Level.WARNING, "The SharedNioEventLoopGroup had been closed but close() method was invoked");
+      LOG.log(Level.WARNING, "The SharedNioEventLoopGroup had been closed");
     }
   }
 
@@ -126,15 +128,4 @@ public final class SharedNioEventLoopGroup implements AutoCloseable {
     );
   }
 
-  @NamedParameter(doc = "the number of thread of server boss NioEventGroup", default_value = "3")
-  public class ServerBossThreadNumber implements Name<Integer> {
-  }
-
-  @NamedParameter(doc = "the number of thread of server worker NioEventGroup", default_value = "20")
-  public class ServerWorkerThreadNumber implements Name<Integer> {
-  }
-
-  @NamedParameter(doc = "the number of thread of client worker NioEventGroup", default_value = "10")
-  public class ClientWorkerThreadNumber implements Name<Integer> {
-  }
 }

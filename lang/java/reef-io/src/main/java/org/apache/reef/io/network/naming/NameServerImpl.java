@@ -31,9 +31,8 @@ import org.apache.reef.wake.remote.address.LocalAddressProvider;
 import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
 import org.apache.reef.wake.remote.impl.TransportEvent;
 import org.apache.reef.wake.remote.transport.Transport;
-import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
-import org.apache.reef.wake.remote.transport.netty.NettyMessagingTransport;
 import org.apache.reef.wake.remote.transport.TransportFactory;
+import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
 import org.apache.reef.webserver.AvroReefServiceInfo;
 import org.apache.reef.webserver.ReefEventStateManager;
 
@@ -68,13 +67,22 @@ public class NameServerImpl implements NameServer {
       final int port,
       final IdentifierFactory factory,
       final LocalAddressProvider localAddressProvider) {
+    this(port, factory, localAddressProvider, new MessagingTransportFactory());
+  }
+
+  @Deprecated
+  public NameServerImpl(
+      final int port,
+      final IdentifierFactory factory,
+      final LocalAddressProvider localAddressProvider,
+      final TransportFactory tpFactory) {
 
     this.localAddressProvider = localAddressProvider;
     this.reefEventStateManager = null;
     final Codec<NamingMessage> codec = NamingCodecFactory.createFullCodec(factory);
     final EventHandler<NamingMessage> handler = createEventHandler(codec);
 
-    this.transport = new NettyMessagingTransport(localAddressProvider.getLocalAddress(), port, null,
+    this.transport = tpFactory.getInstance(localAddressProvider.getLocalAddress(), port, null,
         new SyncStage<>(new NamingServerHandler(handler, codec)), 3, 10000);
 
     this.port = transport.getListeningPort();
@@ -113,10 +121,9 @@ public class NameServerImpl implements NameServer {
    * @deprecated have an instance injected instead
    */
   @Deprecated
-  @Inject
   public NameServerImpl(
-      final @Parameter(NameServerParameters.NameServerPort.class) int port,
-      final @Parameter(NameServerParameters.NameServerIdentifierFactory.class) IdentifierFactory factory,
+      final int port,
+      final IdentifierFactory factory,
       final ReefEventStateManager reefEventStateManager,
       final LocalAddressProvider localAddressProvider) {
     this(port, factory, reefEventStateManager, localAddressProvider, new MessagingTransportFactory());

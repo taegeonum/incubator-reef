@@ -21,12 +21,15 @@ package org.apache.reef.services.network;
 import org.apache.reef.io.network.naming.*;
 import org.apache.reef.io.network.naming.exception.NamingException;
 import org.apache.reef.io.network.util.StringIdentifierFactory;
+import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
 import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
+import org.apache.reef.wake.remote.transport.TransportFactory;
+import org.apache.reef.wake.remote.transport.netty.NettyNioEventLoopGroupProvider;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -37,19 +40,25 @@ import java.util.concurrent.ExecutionException;
 
 public class NameClientTest {
 
-  private final LocalAddressProvider localAddressProvider;
-
-  public NameClientTest() throws InjectionException {
-    this.localAddressProvider = LocalAddressProviderFactory.getInstance();
-  }
+  private static final LocalAddressProvider localAddressProvider;
+  private static final TransportFactory tpFactory;
+  private static final NettyNioEventLoopGroupProvider sharedNioEventLoopGroup;
 
   static int retryCount, retryTimeout;
+
+  public NameClientTest() throws InjectionException {
+  }
 
   static {
     Tang tang = Tang.Factory.getTang();
     try {
       retryCount = tang.newInjector().getNamedInstance(NameLookupClient.RetryCount.class);
       retryTimeout = tang.newInjector().getNamedInstance(NameLookupClient.RetryTimeout.class);
+      final Injector injector = Tang.Factory.getTang().newInjector();
+      localAddressProvider = injector.getInstance(LocalAddressProvider.class);
+      tpFactory = injector.getInstance(TransportFactory.class);
+      sharedNioEventLoopGroup = injector.getInstance(NettyNioEventLoopGroupProvider.class);
+
     } catch (InjectionException e1) {
       throw new RuntimeException("Exception while trying to find default values for retryCount & Timeout", e1);
     }
@@ -69,6 +78,12 @@ public class NameClientTest {
   public static void tearDownAfterClass() throws Exception {
   }
 
+
+  @AfterClass
+  public static void cleanupInstances() throws Exception {
+    sharedNioEventLoopGroup.close();
+  }
+
   /**
    * Test method for {@link org.apache.reef.io.network.naming.NameClient#close()}.
    *
@@ -78,9 +93,9 @@ public class NameClientTest {
   public final void testClose() throws Exception {
     final String localAddress = localAddressProvider.getLocalAddress();
     IdentifierFactory factory = new StringIdentifierFactory();
-    try (NameServer server = new NameServerImpl(0, factory, this.localAddressProvider)) {
+    try (NameServer server = new NameServerImpl(0, factory, this.localAddressProvider, tpFactory)) {
       int serverPort = server.getPort();
-      try (NameClient client = new NameClient(localAddress, serverPort, factory, retryCount, retryTimeout,
+      try (NameClient client = new NameClient(localAddress, serverPort, 1000, factory, retryCount, retryTimeout,
           new NameCache(10000), localAddressProvider)) {
         Identifier id = factory.getNewInstance("Task1");
         client.register(id, new InetSocketAddress(localAddress, 7001));
@@ -101,10 +116,10 @@ public class NameClientTest {
   public final void testLookup() throws Exception {
     IdentifierFactory factory = new StringIdentifierFactory();
     final String localAddress = localAddressProvider.getLocalAddress();
-    try (NameServer server = new NameServerImpl(0, factory, this.localAddressProvider)) {
+    try (NameServer server = new NameServerImpl(0, factory, this.localAddressProvider, tpFactory)) {
       int serverPort = server.getPort();
-      try (NameClient client = new NameClient(localAddress, serverPort, factory, retryCount, retryTimeout,
-          new NameCache(150), localAddressProvider)) {
+      try (NameClient client = new NameClient(localAddress, serverPort, 1000,  factory, retryCount, retryTimeout,
+          new NameCache(150), localAddressProvider, tpFactory)) {
         Identifier id = factory.getNewInstance("Task1");
         client.register(id, new InetSocketAddress(localAddress, 7001));
         client.lookup(id);// caches the entry

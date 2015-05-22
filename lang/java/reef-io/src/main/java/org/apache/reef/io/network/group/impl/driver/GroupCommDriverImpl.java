@@ -142,7 +142,7 @@ public class GroupCommDriverImpl implements GroupCommServiceDriver {
     assert (SingletonAsserter.assertSingleton(getClass()));
     this.driverId = driverId;
     this.fanOut = fanOut;
-    this.nameService = new NameServerImpl(0, idFac, localAddressProvider);
+    this.nameService = new NameServerImpl(0, idFac, localAddressProvider, tpFactory);
     this.nameServiceAddr = localAddressProvider.getLocalAddress();
     this.nameServicePort = nameService.getPort();
     this.confSerializer = confSerializer;

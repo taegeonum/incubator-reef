@@ -35,8 +35,9 @@ import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
 import org.apache.reef.wake.remote.impl.TransportEvent;
 import org.apache.reef.wake.remote.transport.Link;
 import org.apache.reef.wake.remote.transport.Transport;
+import org.apache.reef.wake.remote.transport.TransportFactory;
 import org.apache.reef.wake.remote.transport.netty.LoggingLinkListener;
-import org.apache.reef.wake.remote.transport.netty.NettyMessagingTransport;
+import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -67,6 +68,7 @@ public class NameRegistryClient implements Stage, NamingRegistry {
    * @param serverPort a name server port
    * @param factory    an identifier factory
    */
+  @Deprecated
   public NameRegistryClient(
       final String serverAddr, final int serverPort, final IdentifierFactory factory, final LocalAddressProvider localAddressProvider) {
     this(serverAddr, serverPort, 10000, factory, localAddressProvider);
@@ -80,17 +82,28 @@ public class NameRegistryClient implements Stage, NamingRegistry {
    * @param timeout    timeout in ms
    * @param factory    an identifier factory
    */
+  @Deprecated
   public NameRegistryClient(final String serverAddr,
                             final int serverPort,
                             final long timeout,
                             final IdentifierFactory factory,
                             final LocalAddressProvider localAddressProvider) {
 
+    this(serverAddr, serverPort, timeout, factory, localAddressProvider, new MessagingTransportFactory());
+  }
+
+  public NameRegistryClient(final String serverAddr,
+                            final int serverPort,
+                            final long timeout,
+                            final IdentifierFactory factory,
+                            final LocalAddressProvider localAddressProvider,
+                            final TransportFactory tpFactory) {
+
     this.serverSocketAddr = new InetSocketAddress(serverAddr, serverPort);
     this.timeout = timeout;
     this.codec = NamingCodecFactory.createRegistryCodec(factory);
     this.replyQueue = new LinkedBlockingQueue<>();
-    this.transport = new NettyMessagingTransport(localAddressProvider.getLocalAddress(), 0,
+    this.transport = tpFactory.getInstance(localAddressProvider.getLocalAddress(), 0,
         new SyncStage<>(new NamingRegistryClientHandler(new NamingRegistryResponseHandler(replyQueue), codec)),
         null, 3, 10000);
   }

@@ -27,7 +27,8 @@ import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
-import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
+import org.apache.reef.wake.remote.transport.TransportFactory;
+import org.apache.reef.wake.remote.transport.netty.NettyNioEventLoopGroupProvider;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,22 +48,27 @@ import java.util.logging.Logger;
 public class NamingTest {
 
   private static final Logger LOG = Logger.getLogger(NamingTest.class.getName());
-  private static final int retryCount;
-  private static final int retryTimeout;
+  private static final LocalAddressProvider localAddressProvider;
+  private static final TransportFactory tpFactory;
+  private static final NettyNioEventLoopGroupProvider sharedNioEventLoopGroup;
+
+  static int retryCount, retryTimeout;
 
   static {
+    Tang tang = Tang.Factory.getTang();
     try {
+      retryCount = tang.newInjector().getNamedInstance(NameLookupClient.RetryCount.class);
+      retryTimeout = tang.newInjector().getNamedInstance(NameLookupClient.RetryTimeout.class);
       final Injector injector = Tang.Factory.getTang().newInjector();
-      retryCount = injector.getNamedInstance(NameLookupClient.RetryCount.class);
-      retryTimeout = injector.getNamedInstance(NameLookupClient.RetryTimeout.class);
-    } catch (final InjectionException ex) {
-      final String msg = "Exception while trying to find default values for retryCount & Timeout";
-      LOG.log(Level.SEVERE, msg, ex);
-      throw new RuntimeException(msg, ex);
+      localAddressProvider = injector.getInstance(LocalAddressProvider.class);
+      tpFactory = injector.getInstance(TransportFactory.class);
+      sharedNioEventLoopGroup = injector.getInstance(NettyNioEventLoopGroupProvider.class);
+
+    } catch (InjectionException e1) {
+      throw new RuntimeException("Exception while trying to find default values for retryCount & Timeout", e1);
     }
   }
 
-  private final LocalAddressProvider localAddressProvider;
   @Rule
   public final TestName name = new TestName();
   final long TTL = 30000;
@@ -70,7 +76,6 @@ public class NamingTest {
   int port;
 
   public NamingTest() throws InjectionException {
-    this.localAddressProvider = LocalAddressProviderFactory.getInstance();
   }
 
   /**
@@ -98,7 +103,7 @@ public class NamingTest {
 
     // run a client
     final NameLookupClient client = new NameLookupClient(localAddress, this.port,
-        10000, this.factory, retryCount, retryTimeout, new NameCache(this.TTL), this.localAddressProvider);
+        10000, this.factory, retryCount, retryTimeout, new NameCache(this.TTL), this.localAddressProvider, tpFactory);
 
     final Identifier id1 = this.factory.getNewInstance("task1");
     final Identifier id2 = this.factory.getNewInstance("task2");
@@ -142,7 +147,7 @@ public class NamingTest {
       idToAddrMap.put(this.factory.getNewInstance("task3"), new InetSocketAddress(localAddress, 7003));
 
       // run a server
-      final NameServer server = new NameServerImpl(0, this.factory, this.localAddressProvider);
+      final NameServer server = new NameServerImpl(0, this.factory, this.localAddressProvider, tpFactory);
       this.port = server.getPort();
       for (final Identifier id : idToAddrMap.keySet()) {
         server.register(id, idToAddrMap.get(id));
@@ -150,7 +155,7 @@ public class NamingTest {
 
       // run a client
       final NameLookupClient client = new NameLookupClient(localAddress, this.port,
-          10000, this.factory, retryCount, retryTimeout, new NameCache(this.TTL), this.localAddressProvider);
+          10000, this.factory, retryCount, retryTimeout, new NameCache(this.TTL), this.localAddressProvider, tpFactory);
 
       final Identifier id1 = this.factory.getNewInstance("task1");
       final Identifier id2 = this.factory.getNewInstance("task2");
@@ -225,7 +230,7 @@ public class NamingTest {
 
     LOG.log(Level.FINEST, this.name.getMethodName());
 
-    final NameServer server = new NameServerImpl(0, this.factory, this.localAddressProvider);
+    final NameServer server = new NameServerImpl(0, this.factory, this.localAddressProvider, tpFactory);
     this.port = server.getPort();
     final String localAddress = localAddressProvider.getLocalAddress();
 
@@ -236,7 +241,7 @@ public class NamingTest {
 
     // registration
     // invoke registration from the client side
-    final NameRegistryClient client = new NameRegistryClient(localAddress, this.port, this.factory, this.localAddressProvider);
+    final NameRegistryClient client = new NameRegistryClient(localAddress, this.port, 1000, this.factory, this.localAddressProvider, tpFactory);
     for (final Identifier id : idToAddrMap.keySet()) {
       client.register(id, idToAddrMap.get(id));
     }
@@ -287,7 +292,7 @@ public class NamingTest {
     LOG.log(Level.FINEST, this.name.getMethodName());
 
     final String localAddress = localAddressProvider.getLocalAddress();
-    final NameServer server = new NameServerImpl(0, this.factory, this.localAddressProvider);
+    final NameServer server = new NameServerImpl(0, this.factory, this.localAddressProvider, tpFactory);
     this.port = server.getPort();
 
     final Map<Identifier, InetSocketAddress> idToAddrMap = new HashMap<Identifier, InetSocketAddress>();
@@ -296,8 +301,8 @@ public class NamingTest {
 
     // registration
     // invoke registration from the client side
-    final NameClient client = new NameClient(localAddress, this.port,
-        this.factory, retryCount, retryTimeout, new NameCache(this.TTL), this.localAddressProvider);
+    final NameClient client = new NameClient(localAddress, this.port, 1000,
+        this.factory, retryCount, retryTimeout, new NameCache(this.TTL), this.localAddressProvider, tpFactory);
     for (final Identifier id : idToAddrMap.keySet()) {
       client.register(id, idToAddrMap.get(id));
     }

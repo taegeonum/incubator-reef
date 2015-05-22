@@ -38,7 +38,7 @@ public class MessagingTransportFactory implements TransportFactory {
 
   private final String localAddress;
   private final LocalAddressProvider addressProvider;
-  private final SharedNioEventLoopGroup sharedNioEventLoopGroup;
+  private final NettyNioEventLoopGroupProvider sharedNioEventLoopGroup;
 
   /**
    * @deprecated Have an instance injected instead.
@@ -47,7 +47,7 @@ public class MessagingTransportFactory implements TransportFactory {
   @Inject
   public MessagingTransportFactory(
       final LocalAddressProvider localAddressProvider,
-      final SharedNioEventLoopGroup sharedNioEventLoopGroup) {
+      final NettyNioEventLoopGroupProvider sharedNioEventLoopGroup) {
     this.localAddress = localAddressProvider.getLocalAddress();
     this.sharedNioEventLoopGroup = sharedNioEventLoopGroup;
     this.addressProvider = localAddressProvider;
@@ -61,7 +61,7 @@ public class MessagingTransportFactory implements TransportFactory {
       final LocalAddressProvider localAddressProvider) {
     this.localAddress = localAddressProvider.getLocalAddress();
     this.addressProvider = localAddressProvider;
-    this.sharedNioEventLoopGroup = new SharedNioEventLoopGroup();
+    this.sharedNioEventLoopGroup = new DefaultNettyNioEventLoopGroupProvider(3, 20, 20);
   }
 
   /**
@@ -70,7 +70,7 @@ public class MessagingTransportFactory implements TransportFactory {
   @Deprecated
   public MessagingTransportFactory() {
     this.localAddress = LocalAddressProviderFactory.getInstance().getLocalAddress();
-    this.sharedNioEventLoopGroup = new SharedNioEventLoopGroup();
+    this.sharedNioEventLoopGroup = new DefaultNettyNioEventLoopGroupProvider(3, 20, 20);
     this.addressProvider = LocalAddressProviderFactory.getInstance();
   }
 
@@ -89,7 +89,8 @@ public class MessagingTransportFactory implements TransportFactory {
                                final EventHandler<Exception> exHandler) {
 
     final Transport transport = new NettyMessagingTransport(this.localAddress,
-        port, new SyncStage<>(clientHandler), new SyncStage<>(serverHandler), 3, 10000, RangeTcpPortProvider.Default);
+        port, new SyncStage<>(clientHandler), new SyncStage<>(serverHandler), 3, 10000, RangeTcpPortProvider.Default,
+        addressProvider, sharedNioEventLoopGroup);
 
     transport.registerErrorHandler(exHandler);
     return transport;

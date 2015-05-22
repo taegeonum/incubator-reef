@@ -21,19 +21,22 @@ package org.apache.reef.services.network;
 import org.apache.reef.exception.evaluator.NetworkException;
 import org.apache.reef.io.network.Connection;
 import org.apache.reef.io.network.Message;
-import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
 import org.apache.reef.io.network.impl.NetworkService;
 import org.apache.reef.io.network.naming.NameServer;
 import org.apache.reef.io.network.naming.NameServerImpl;
 import org.apache.reef.io.network.util.StringIdentifierFactory;
 import org.apache.reef.services.network.util.Monitor;
 import org.apache.reef.services.network.util.StringCodec;
+import org.apache.reef.tang.Injector;
+import org.apache.reef.tang.Tang;
+import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
-import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
-import org.apache.reef.wake.remote.transport.netty.SharedNioEventLoopGroup;
+import org.apache.reef.wake.remote.transport.TransportFactory;
+import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
+import org.apache.reef.wake.remote.transport.netty.NettyNioEventLoopGroupProvider;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -52,8 +55,8 @@ import java.util.logging.Logger;
 public class NetworkServiceTest {
   private static final Logger LOG = Logger.getLogger(NetworkServiceTest.class.getName());
 
-  private static MessagingTransportFactory tpFactory;
-  private static SharedNioEventLoopGroup sharedNioEventLoopGroup;
+  private static TransportFactory tpFactory;
+  private static NettyNioEventLoopGroupProvider sharedNioEventLoopGroup;
   private static LocalAddressProvider localAddressProvider;
   private static String localAddress;
 
@@ -61,15 +64,17 @@ public class NetworkServiceTest {
   public TestName name = new TestName();
 
   @BeforeClass
-  public static void setupInstances() {
-    localAddressProvider = LocalAddressProviderFactory.getInstance();
+  public static void setupInstances() throws InjectionException {
+    final Injector injector = Tang.Factory.getTang().newInjector();
+    localAddressProvider = injector.getInstance(LocalAddressProvider.class);
+    tpFactory = injector.getInstance(TransportFactory.class);
     localAddress = localAddressProvider.getLocalAddress();
-    sharedNioEventLoopGroup = new SharedNioEventLoopGroup();
+    sharedNioEventLoopGroup = injector.getInstance(NettyNioEventLoopGroupProvider.class);
     tpFactory = new MessagingTransportFactory(localAddressProvider, sharedNioEventLoopGroup);
   }
 
   @AfterClass
-  public static void cleanupInstances() {
+  public static void cleanupInstances() throws Exception {
     sharedNioEventLoopGroup.close();
   }
 
