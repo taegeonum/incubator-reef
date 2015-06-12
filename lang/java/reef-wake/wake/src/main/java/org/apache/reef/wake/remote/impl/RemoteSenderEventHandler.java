@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -25,7 +25,6 @@ import org.apache.reef.wake.remote.transport.Link;
 import org.apache.reef.wake.remote.transport.Transport;
 import org.apache.reef.wake.remote.transport.netty.LoggingLinkListener;
 
-import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,7 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Remote sender event handler
+ * Remote sender event handler.
  *
  * @param <T> type
  */
@@ -48,7 +47,7 @@ class RemoteSenderEventHandler<T> implements EventHandler<RemoteEvent<T>> {
   private final ExecutorService executor;
 
   /**
-   * Constructs a remote sender event handler
+   * Constructs a remote sender event handler.
    *
    * @param encoder   the encoder
    * @param transport the transport to send events
@@ -82,7 +81,7 @@ class RemoteSenderEventHandler<T> implements EventHandler<RemoteEvent<T>> {
   }
 
   /**
-   * Handles the event to send to a remote node
+   * Handles the event to send to a remote node.
    *
    * @param value the event
    * @throws RemoteRuntimeException

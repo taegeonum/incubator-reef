@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -26,14 +26,13 @@ import org.apache.reef.wake.remote.Codec;
 import org.apache.reef.wake.remote.transport.Link;
 import org.apache.reef.wake.remote.transport.LinkListener;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * A connection from the network service
+ * A connection from the network service.
  */
 class NSConnection<T> implements Connection<T> {
 
@@ -49,7 +48,7 @@ class NSConnection<T> implements Connection<T> {
   private Link<NSMessage<T>> link;
 
   /**
-   * Constructs a connection
+   * Constructs a connection.
    *
    * @param srcId    a source identifier
    * @param destId   a destination identifier
@@ -95,7 +94,7 @@ class NSConnection<T> implements Connection<T> {
   }
 
   /**
-   * Writes an object to the connection
+   * Writes an object to the connection.
    *
    * @param obj an object of type T
    * @throws a network exception
@@ -106,7 +105,7 @@ class NSConnection<T> implements Connection<T> {
   }
 
   /**
-   * Closes the connection and unregisters it from the service
+   * Closes the connection and unregisters it from the service.
    */
   @Override
   public void close() throws NetworkException {
@@ -115,7 +114,7 @@ class NSConnection<T> implements Connection<T> {
 }
 
 /**
- * No-op link listener
+ * No-op link listener.
  *
  * @param <T>
  */

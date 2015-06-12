@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -142,7 +142,7 @@ public class InjectorImpl implements Injector {
   @SuppressWarnings("unchecked")
   private <T> T getCachedInstance(ClassNode<T> cn) {
     if (cn.getFullName().equals("org.apache.reef.tang.Injector")) {
-      return (T) this;// TODO: We should be insisting on injection futures here! .forkInjector();
+      return (T) this; // TODO: We should be insisting on injection futures here! .forkInjector();
     } else {
       T t = (T) instances.get(cn);
       if (t instanceof InjectionFuture) {

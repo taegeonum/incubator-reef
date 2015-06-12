@@ -18,27 +18,37 @@
  */
 
 using System;
-using Org.Apache.REEF.Common;
 using Org.Apache.REEF.Tang.Annotations;
+using Org.Apache.REEF.Utilities.Logging;
+using Org.Apache.REEF.Wake.Time.Event;
 
-namespace Org.Apache.REEF.Driver
+namespace Org.Apache.REEF.Driver.Defaults
 {
-    [Obsolete("Driver core logic no longer needed in.NET")]
-    public class DriverRuntimeConfigurationOptions
+    /// <summary>
+    ///  Default event handler for driver start: Logging it.
+    /// </summary>
+    public class DefaultDriverStartHandler : IObserver<DateTime>
     {
-        [NamedParameter(documentation: "Job message handler (see ClientJobStatusHandler)")]
-        public class JobMessageHandler : Name<ClientJobStatusHandler>
+        private static readonly Logger LOGGER = Logger.GetLogger(typeof(DefaultDriverStartHandler));
+
+        [Inject]
+        public DefaultDriverStartHandler()
         {
         }
 
-        [NamedParameter(documentation: "Job exception handler (see ClientJobStatusHandler)")]
-        public class JobExceptionHandler : Name<ClientJobStatusHandler>
+        public void OnNext(DateTime startTime)
         {
+            LOGGER.Log(Level.Info, "Driver started at" + startTime);
         }
 
-        [NamedParameter(documentation: "Called when a job control message is received by the client.")]
-        public class JobControlHandler : Name<ClientManager>
+        public void OnError(Exception error)
         {
+            throw new NotImplementedException();
+        }
+
+        public void OnCompleted()
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,28 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network;
-
-import org.apache.reef.wake.EventHandler;
-import org.apache.reef.wake.remote.impl.TransportEvent;
-import org.apache.reef.wake.remote.transport.Transport;
-
 /**
- * Factory that creates a transport
+ * The Java-side of the CLR/Java bridge.
  */
-public interface TransportFactory {
-
-  /**
-   * Creates a transport
-   *
-   * @param port          a listening port
-   * @param clientHandler a transport client-side handler
-   * @param serverHandler a transport server-side handler
-   * @param exHandler     an exception handler
-   * @return
-   */
-  public Transport create(int port,
-                          EventHandler<TransportEvent> clientHandler,
-                          EventHandler<TransportEvent> serverHandler,
-                          EventHandler<Exception> exHandler);
-}
+package org.apache.reef.javabridge;

@@ -37,7 +37,7 @@ namespace Org.Apache.REEF.Network.Group.Operators.Impl
     {
         private static readonly Logger Logger = Logger.GetLogger(typeof(BroadcastSender<T>));
         private const int PipelineVersion = 2;
-        private readonly OperatorTopology<PipelineMessage<T>> _topology;
+        private readonly IOperatorTopology<PipelineMessage<T>> _topology;
 
         /// <summary>
         /// Creates a new BroadcastSender to send messages to other Tasks.
@@ -45,31 +45,36 @@ namespace Org.Apache.REEF.Network.Group.Operators.Impl
         /// <param name="operatorName">The identifier for the operator</param>
         /// <param name="groupName">The name of the CommunicationGroup that the operator
         /// belongs to</param>
+        /// <param name="initialize">Require Topology Initialize to be called to wait for all task being registered. 
+        /// Default is true. For unit testing, it can be set to false.</param>
         /// <param name="topology">The node's topology graph</param>
         /// <param name="networkHandler">The incoming message handler</param>
         /// <param name="dataConverter">The converter used to convert original
         /// message to pipelined ones and vice versa.</param>
         [Inject]
-        public BroadcastSender(
+        private  BroadcastSender(
             [Parameter(typeof(GroupCommConfigurationOptions.OperatorName))] string operatorName,
             [Parameter(typeof(GroupCommConfigurationOptions.CommunicationGroupName))] string groupName,
+            [Parameter(typeof(GroupCommConfigurationOptions.Initialize))] bool initialize,
             OperatorTopology<PipelineMessage<T>> topology,
             ICommunicationGroupNetworkObserver networkHandler,
             IPipelineDataConverter<T> dataConverter)
         {
+            _topology = topology;
             OperatorName = operatorName;
             GroupName = groupName;
             Version = PipelineVersion;
+            PipelineDataConverter = dataConverter;
 
-            _topology = topology;
-            _topology.Initialize();
-
-            var msgHandler = Observer.Create<GroupCommunicationMessage>(message => _topology.OnNext(message));
+            var msgHandler = Observer.Create<GroupCommunicationMessage>(message => topology.OnNext(message));
             networkHandler.Register(operatorName, msgHandler);
 
-            PipelineDataConverter = dataConverter;
+            if (initialize)
+            {
+                topology.Initialize();
+            }
         }
-
+      
         /// <summary>
         /// Returns the identifier for the Group Communication operator.
         /// </summary>

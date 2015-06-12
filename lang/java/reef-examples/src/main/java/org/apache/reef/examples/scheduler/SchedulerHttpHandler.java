@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Receive HttpRequest so that it can handle the command list
+ * Receive HttpRequest so that it can handle the command list.
  */
 final class SchedulerHttpHandler implements HttpHandler {
   final InjectionFuture<SchedulerDriver> schedulerDriver;
@@ -61,7 +61,7 @@ final class SchedulerHttpHandler implements HttpHandler {
    *   /status?id={id}      to query the status of such a task, given id
    *   /submit?cmd={cmd}    to submit a Task, which returns its id
    *   /cancel?id={id}      to cancel the task's execution
-   *   /num-eval?num={num}  to set the maximum number of evaluators
+   *   /max-eval?num={num}  to set the maximum number of evaluators
    *   /clear               to clear the waiting queue
    */
   @Override

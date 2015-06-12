@@ -18,7 +18,6 @@
  */
 package org.apache.reef.wake.remote.ports;
 
-import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 
 import java.util.Iterator;
@@ -29,7 +28,7 @@ import java.util.Iterator;
 @DefaultImplementation(RangeTcpPortProvider.class)
 public interface TcpPortProvider extends Iterable<Integer> {
   /**
-   * Returns an iterator over a set of tcp ports
+   * Returns an iterator over a set of tcp ports.
    *
    * @return an Iterator.
    */

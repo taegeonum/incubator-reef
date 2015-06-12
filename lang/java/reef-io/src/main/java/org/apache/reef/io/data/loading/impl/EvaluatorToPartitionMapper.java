@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -18,10 +18,8 @@
  */
 package org.apache.reef.io.data.loading.impl;
 
-import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.reef.annotations.audience.DriverSide;
-import org.apache.reef.io.data.loading.api.DataLoadingService;
 
 import java.io.IOException;
 import java.util.Map;
@@ -36,8 +34,8 @@ import java.util.logging.Logger;
  * Class that tracks the mapping between
  * evaluators & the data partition assigned
  * to those evaluators. Its part of the
- * implementation of a {@link DataLoadingService}
- * that uses the Hadoop {@link InputFormat} to
+ * implementation of a {@link org.apache.reef.io.data.loading.api.DataLoadingService}
+ * that uses the Hadoop {@link org.apache.hadoop.mapred.InputFormat} to
  * partition the data and request resources
  * accordingly
  * <p/>
@@ -56,7 +54,7 @@ public class EvaluatorToPartitionMapper<V extends InputSplit> {
   private final BlockingQueue<NumberedSplit<V>> unallocatedSplits = new LinkedBlockingQueue<>();
 
   /**
-   * Initializes the locations of splits mapping
+   * Initializes the locations of splits mapping.
    *
    * @param splits
    */
@@ -88,7 +86,7 @@ public class EvaluatorToPartitionMapper<V extends InputSplit> {
   }
 
   /**
-   * Get an input split to be assigned to this
+   * Get an input split to be assigned to this.
    * evaluator
    * <p/>
    * Allocates one if its not already allocated

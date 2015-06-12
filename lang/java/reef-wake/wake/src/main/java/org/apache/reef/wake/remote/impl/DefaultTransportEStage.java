@@ -1,4 +1,4 @@
-﻿/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,14 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.reef.wake.remote.impl;
 
-using System;
-using Org.Apache.REEF.Common.Protobuf.ReefProtocol;
+import org.apache.reef.wake.EStage;
 
-namespace Org.Apache.REEF.Common.Api
-{
-    [Obsolete("Driver core logic no longer needed in.NET")]
-    public interface IResourceRequestHandler : IObserver<ResourceRequestProto>
-    {
-    }
+import javax.inject.Inject;
+
+public class DefaultTransportEStage implements EStage<TransportEvent> {
+
+  @Inject
+  public DefaultTransportEStage() {
+  }
+
+  @Override
+  public void onNext(TransportEvent value) {
+  }
+
+  @Override
+  public void close() throws Exception {
+  }
 }

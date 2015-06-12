@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -374,7 +374,7 @@ public class Tint {
           String conf = t.modules.get(f).toPrettyString();
           String[] tok = conf.split("\n");
           for (final String line : tok) {
-            out.println(stripPrefix(line, "no.such.prefix"));//t.modules.get(f).toPrettyString());
+            out.println(stripPrefix(line, "no.such.prefix")); //t.modules.get(f).toPrettyString());
           }
 //        List<Entry<String,String>> lines = t.modules.get(f).toStringPairs();
 //        for(Entry<String,String> line : lines) {

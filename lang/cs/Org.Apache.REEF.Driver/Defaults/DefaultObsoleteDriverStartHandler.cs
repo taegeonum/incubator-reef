@@ -18,27 +18,24 @@
  */
 
 using System;
-using Org.Apache.REEF.Common.Protobuf.ReefProtocol;
+using Org.Apache.REEF.Tang.Annotations;
 
-// TODO
-namespace Org.Apache.REEF.Driver
+namespace Org.Apache.REEF.Driver.Defaults
 {
-    [Obsolete("Driver core logic no longer needed in.NET")]
-    public class ClientManager : IObserver<JobControlProto>
+    /// <summary>
+    /// Default event handler for driver start: Logging it.
+    /// </summary>
+    [Obsolete(
+        "Implement IObserver<DateTime> instead. Please see Jira REEF-336. Obsoleted v0.12 and will be removed v0.13",
+        false)]
+    public class DefaultObsoleteDriverStartHandler : IStartHandler
     {
-        public void OnNext(JobControlProto value)
+        [Inject]
+        public DefaultObsoleteDriverStartHandler()
         {
-            throw new NotImplementedException();
+            Identifier = "DefaultObsoleteDriverStartHandler";
         }
 
-        public void OnError(Exception error)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void OnCompleted()
-        {
-            throw new NotImplementedException();
-        }
+        public string Identifier { get; set; }
     }
 }
