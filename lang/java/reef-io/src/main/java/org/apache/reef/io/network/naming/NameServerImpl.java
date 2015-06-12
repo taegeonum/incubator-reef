@@ -117,6 +117,25 @@ public class NameServerImpl implements NameServer {
   }
 
   /**
+   * Constructs a name server
+   *
+   * @param port                  a listening port number
+   * @param factory               an identifier factory
+   * @param reefEventStateManager the event state manager used to register name server info
+   * @param localAddressProvider  a local address provider
+   * @deprecated have an instance injected instead
+   */
+  @Deprecated
+  public NameServerImpl(
+      final int port,
+      final IdentifierFactory factory,
+      final ReefEventStateManager reefEventStateManager,
+      final LocalAddressProvider localAddressProvider) {
+    this(port, factory, reefEventStateManager, localAddressProvider, new MessagingTransportFactory());
+  }
+
+
+  /**
    * Constructs a name server.
    *
    * @param port                  a listening port number
