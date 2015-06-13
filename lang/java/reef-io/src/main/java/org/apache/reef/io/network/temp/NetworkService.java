@@ -18,19 +18,21 @@
  */
 package org.apache.reef.io.network.temp;
 
+import org.apache.reef.exception.evaluator.NetworkException;
 import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.temp.impl.DefaultNetworkServiceImpl;
 import org.apache.reef.io.network.temp.impl.NetworkEvent;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
+import org.apache.reef.wake.Stage;
 import org.apache.reef.wake.remote.Codec;
 import org.apache.reef.wake.remote.transport.LinkListener;
 
 import java.net.SocketAddress;
 
 @DefaultImplementation(DefaultNetworkServiceImpl.class)
-public interface NetworkService extends AutoCloseable{
+public interface NetworkService extends Stage {
 
   public <T> ConnectionFactory<T> newConnectionFactory(final Identifier clientServiceId, final Codec<T> codec,
                                                        final EventHandler<NetworkEvent<T>> eventHandler);
@@ -38,6 +40,8 @@ public interface NetworkService extends AutoCloseable{
   public <T> ConnectionFactory<T> newConnectionFactory(final Identifier clientServiceId, final Codec<T> codec,
                                                  final EventHandler<NetworkEvent<T>> eventHandler,
                                                  final LinkListener<NetworkEvent<T>> linkListener);
+
+  public void registerId(final Identifier nsId) throws NetworkException;
 
   public Identifier getNetworkServiceId();
 

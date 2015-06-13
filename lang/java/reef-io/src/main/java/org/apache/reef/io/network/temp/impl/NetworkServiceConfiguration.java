@@ -36,12 +36,6 @@ import org.apache.reef.wake.IdentifierFactory;
 public final class NetworkServiceConfiguration extends ConfigurationModuleBuilder {
 
   /**
-   * Identifier of Network Service
-   */
-  public static final RequiredParameter<String> NETWORK_SERVICE_ID = new RequiredParameter<>();
-
-
-  /**
    * The port of name server.
    */
   public static final RequiredParameter<Integer> NAME_SERVICE_PORT = new RequiredParameter<>();
@@ -76,7 +70,6 @@ public final class NetworkServiceConfiguration extends ConfigurationModuleBuilde
   public static final RequiredParameter<IdentifierFactory> NETWORK_SERVICE_IDENDITIFER_FACTORY = new RequiredParameter<>();
 
   public static final ConfigurationModule CONF = new NetworkServiceConfiguration()
-      .bindNamedParameter(NetworkServiceParameters.NetworkServiceId.class, NETWORK_SERVICE_ID)
       .bindNamedParameter(NameServerParameters.NameServerPort.class, NAME_SERVICE_PORT)
       .bindNamedParameter(NameServerParameters.NameServerAddr.class, NAME_SERVICE_ADDRESS)
       .bindNamedParameter(NameServerParameters.NameServerIdentifierFactory.class, NAME_SERVER_IDENTIFIER_FACTORY)

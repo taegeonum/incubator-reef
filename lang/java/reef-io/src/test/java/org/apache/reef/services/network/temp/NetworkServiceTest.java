@@ -80,7 +80,6 @@ public class NetworkServiceTest {
 
     // task2 conf
     Configuration conf = NetworkServiceConfiguration.CONF
-        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task2")
         .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
         .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
         .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
@@ -89,7 +88,6 @@ public class NetworkServiceTest {
 
     // task1 conf
     Configuration conf2 = NetworkServiceConfiguration.CONF
-        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task1")
         .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
         .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
         .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
@@ -104,6 +102,7 @@ public class NetworkServiceTest {
     Injector ij2 = injector.forkInjector(conf);
     final NetworkService ns2 = ij2.getInstance(NetworkService.class);
     IdentifierFactory factory = ij2.getNamedInstance(NetworkServiceParameters.IdentifierFactory.class);
+    ns2.registerId(factory.getNewInstance("task2"));
 
     // connection for receiving messages
     ConnectionFactory<String> receiver = ns2.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task2", monitor, numMessages));
@@ -112,7 +111,7 @@ public class NetworkServiceTest {
     LOG.log(Level.FINEST, "=== Test network service sender start");
     Injector ij3 = injector.forkInjector(conf2);
     final NetworkService ns1 = ij3.getInstance(NetworkService.class);
-
+    ns1.registerId(factory.getNewInstance("task1"));
     // connection for sending messages
     ConnectionFactory<String> sender = ns1.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task1", monitor, numMessages));
 
@@ -152,7 +151,6 @@ public class NetworkServiceTest {
 
     // task2 conf
     Configuration conf = NetworkServiceConfiguration.CONF
-        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task2")
         .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
         .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
         .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
@@ -161,7 +159,6 @@ public class NetworkServiceTest {
 
     // task1 conf
     Configuration conf2 = NetworkServiceConfiguration.CONF
-        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task1")
         .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
         .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
         .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
@@ -178,6 +175,7 @@ public class NetworkServiceTest {
     Injector ij2 = injector.forkInjector(conf);
     final NetworkService ns2 = ij2.getInstance(NetworkService.class);
     IdentifierFactory factory = ij2.getNamedInstance(NetworkServiceParameters.IdentifierFactory.class);
+    ns2.registerId(factory.getNewInstance("task2"));
 
     // connection for receiving messages
     ConnectionFactory<String> gcReceiver = ns2.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task2", monitor, groupcommMessages));
@@ -187,6 +185,7 @@ public class NetworkServiceTest {
     LOG.log(Level.FINEST, "=== Test network service sender start");
     Injector ij3 = injector.forkInjector(conf2);
     final NetworkService ns1 = ij3.getInstance(NetworkService.class);
+    ns1.registerId(factory.getNewInstance("task1"));
 
     // connection for sending messages
     ConnectionFactory<String> gcSender = ns1.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task1", monitor, shuffleMessges));

@@ -51,7 +51,7 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
   private final Transport transport;
   private final EventHandler<TransportEvent> recvHandler;
   private final ConcurrentMap<Identifier, NSConnectionFactory> connectionFactoryMap;
-  private final Identifier nsId;
+  private Identifier myId;
   private final Codec<NetworkEvent> nsCodec;
   private final LinkListener<NetworkEvent> nsLinkListener;
 
@@ -59,22 +59,21 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
   public DefaultNetworkServiceImpl(
       final @Parameter(NetworkServiceParameters.IdentifierFactory.class) IdentifierFactory idFactory,
       final @Parameter(NetworkServiceParameters.Port.class) int nsPort,
-      final @Parameter(NetworkServiceParameters.NetworkServiceId.class) String networkServiceId,
       final TransportFactory transportFactory,
       final NameClientProxy nameClientProxy) throws NetworkException {
 
     this.idFactory = idFactory;
-    this.nsId = idFactory.getNewInstance(networkServiceId);
     this.connectionFactoryMap = new ConcurrentHashMap<>();
     this.nsCodec = new NetworkEventCodec(idFactory, connectionFactoryMap);
     this.nsLinkListener = new NetworkServiceLinkListener(connectionFactoryMap);
     this.recvHandler = new NetworkServiceReceiveHandler(connectionFactoryMap, nsCodec);
     this.nameClientProxy = nameClientProxy;
     this.transport = transportFactory.newInstance(nsPort, recvHandler, recvHandler, new DefaultNSExceptionHandler());
-    this.registerId(nsId);
   }
 
-  private void registerId(final Identifier nsId) throws NetworkException {
+  @Override
+  public void registerId(final Identifier nsId) throws NetworkException {
+    this.myId = nsId;
     nameClientProxy.registerId(
         nsId,
         (InetSocketAddress) transport.getLocalAddress()
@@ -112,7 +111,7 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
 
   @Override
   public Identifier getNetworkServiceId() {
-    return this.nsId;
+    return this.myId;
   }
 
   @Override
@@ -122,7 +121,7 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
 
   @Override
   public void close() throws Exception {
-    nameClientProxy.unregisterId(this.nsId);
+    nameClientProxy.unregisterId(this.myId);
     nameClientProxy.close();
     transport.close();
   }
