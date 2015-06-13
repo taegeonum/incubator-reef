@@ -27,11 +27,18 @@ import org.apache.reef.tang.annotations.NamedParameter;
  */
 public final class NetworkServiceParameters {
 
-  @NamedParameter(default_value = "0")
-  public static class Port implements Name<Integer> {
+  @NamedParameter(doc = "port number of NetworkService", default_value = "0")
+  public static final class Port implements Name<Integer> {
+
   }
 
-  @NamedParameter(default_class = StringIdentifierFactory.class)
-  public static class IdentifierFactory implements Name<org.apache.reef.wake.IdentifierFactory> {
+  @NamedParameter(doc = "identifier factory of NetworkService", default_class = StringIdentifierFactory.class)
+  public static final class IdentifierFactory implements Name<org.apache.reef.wake.IdentifierFactory> {
+
+  }
+
+  @NamedParameter(doc = "NetworkService id")
+  public static final class NetworkServiceId implements Name<String> {
+
   }
 }

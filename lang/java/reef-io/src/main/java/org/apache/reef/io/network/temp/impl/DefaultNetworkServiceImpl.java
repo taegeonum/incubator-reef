@@ -19,8 +19,11 @@
 package org.apache.reef.io.network.temp.impl;
 
 import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.exception.NetworkRuntimeException;
-import org.apache.reef.io.network.temp.*;
+import org.apache.reef.io.network.temp.NameClientProxy;
+import org.apache.reef.io.network.temp.NetworkService;
+import org.apache.reef.io.network.temp.NetworkServiceParameters;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
@@ -47,62 +50,69 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
   private final NameClientProxy nameClientProxy;
   private final Transport transport;
   private final EventHandler<TransportEvent> recvHandler;
+  private final ConcurrentMap<Identifier, NSConnectionFactory> connectionFactoryMap;
+  private final Identifier nsId;
+  private final Codec<NetworkEvent> nsCodec;
   private final LinkListener<NetworkEvent> nsLinkListener;
-  private final Codec<NetworkEvent> nsEventCodec;
-  private final ConcurrentMap<Identifier, NSConnectionPool> connectionPoolMap;
 
   @Inject
   public DefaultNetworkServiceImpl(
-      final @Parameter(NetworkServiceParameter.IdentifierFactory.class) IdentifierFactory idFactory,
-      final @Parameter(NetworkServiceParameter.Port.class) int nsPort,
-      final @Parameter(NetworkServiceParameter.ExceptionHandler.class) EventHandler<Exception> exceptionHandler,
+      final @Parameter(NetworkServiceParameters.IdentifierFactory.class) IdentifierFactory idFactory,
+      final @Parameter(NetworkServiceParameters.Port.class) int nsPort,
+      final @Parameter(NetworkServiceParameters.NetworkServiceId.class) String networkServiceId,
       final TransportFactory transportFactory,
-      final NameClientProxy nameClientProxy) {
+      final NameClientProxy nameClientProxy) throws NetworkException {
 
     this.idFactory = idFactory;
-    this.connectionPoolMap = new ConcurrentHashMap<>();
-    this.nsEventCodec = new NetworkEventCodec(idFactory, connectionPoolMap);
-    this.nsLinkListener = new NetworkServiceLinkListener(connectionPoolMap);
-    this.recvHandler = new NetworkServiceReceiveHandler(connectionPoolMap, nsEventCodec);
+    this.nsId = idFactory.getNewInstance(networkServiceId);
+    this.connectionFactoryMap = new ConcurrentHashMap<>();
+    this.nsCodec = new NetworkEventCodec(idFactory, connectionFactoryMap);
+    this.nsLinkListener = new NetworkServiceLinkListener(connectionFactoryMap);
+    this.recvHandler = new NetworkServiceReceiveHandler(connectionFactoryMap, nsCodec);
     this.nameClientProxy = nameClientProxy;
-    this.transport = transportFactory.newInstance(nsPort, recvHandler, recvHandler, exceptionHandler);
+    this.transport = transportFactory.newInstance(nsPort, recvHandler, recvHandler, new DefaultNSExceptionHandler());
+    this.registerId(nsId);
   }
 
-  @Override
-  public void registerId(final String networkServiceId) throws NetworkException {
+  private void registerId(final Identifier nsId) throws NetworkException {
     nameClientProxy.registerId(
-        idFactory.getNewInstance(networkServiceId),
+        nsId,
         (InetSocketAddress) transport.getLocalAddress()
     );
   }
 
-  @Override
-  public void unregisterId() throws NetworkException {
-    nameClientProxy.unregisterId();
+  <T> Link<NetworkEvent<T>> openLink(Identifier remoteId) throws NetworkException {
+    try {
+      final SocketAddress address = nameClientProxy.lookup(remoteId);
+      return transport.open(address, nsCodec, nsLinkListener);
+    } catch(Exception e) {
+      throw new NetworkException(e);
+    }
   }
 
   @Override
-  public <T> ConnectionPool<T> newConnectionPool(final Identifier connectionId, final Codec<T> codec,
-                                              final EventHandler<NetworkEvent<T>> eventHandler) {
-    return newConnectionPool(connectionId, codec, eventHandler, null);
+  public <T> ConnectionFactory<T> newConnectionFactory(final Identifier clientServiceId, final Codec<T> codec,
+                                                       final EventHandler<NetworkEvent<T>> eventHandler) {
+    return newConnectionFactory(clientServiceId, codec, eventHandler, null);
   }
 
   @Override
-  public <T> ConnectionPool<T> newConnectionPool(final Identifier connectionId, final Codec<T> codec,
+  public <T> ConnectionFactory<T> newConnectionFactory(final Identifier clientServiceId, final Codec<T> codec,
                                               final EventHandler<NetworkEvent<T>> eventHandler,
                                               final LinkListener<NetworkEvent<T>> linkListener) {
 
-    final NSConnectionPool<T> connectionPool = new NSConnectionPool<>(connectionId, codec, eventHandler, linkListener, this);
-    if (connectionPoolMap.putIfAbsent(connectionId, connectionPool) != null) {
-      throw new NetworkRuntimeException(connectionPool.toString() + " was already registered.");
+    final NSConnectionFactory<T> connectionFactory = new NSConnectionFactory<>(this, clientServiceId,
+        codec, eventHandler, linkListener);
+    if (connectionFactoryMap.putIfAbsent(clientServiceId, connectionFactory) != null) {
+      throw new NetworkRuntimeException(connectionFactory.toString() + " was already registered.");
     }
 
-    return connectionPool;
+    return connectionFactory;
   }
 
   @Override
   public Identifier getNetworkServiceId() {
-    return nameClientProxy.getLocalIdentifier();
+    return this.nsId;
   }
 
   @Override
@@ -112,20 +122,8 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
 
   @Override
   public void close() throws Exception {
+    nameClientProxy.unregisterId(this.nsId);
     nameClientProxy.close();
     transport.close();
-  }
-
-  <T> Link<NetworkEvent<T>> openLink(Identifier remoteId) throws NetworkException {
-    try {
-      final SocketAddress address = nameClientProxy.lookup(remoteId);
-      return transport.open(address, nsEventCodec, nsLinkListener);
-    } catch(Exception e) {
-      throw new NetworkException(e);
-    }
-  }
-
-  void removeConnectionPool(Identifier connectionId) {
-    connectionPoolMap.remove(connectionId);
   }
 }

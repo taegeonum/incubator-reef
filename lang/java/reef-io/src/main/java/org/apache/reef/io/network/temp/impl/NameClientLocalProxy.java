@@ -27,23 +27,17 @@ import javax.inject.Inject;
 import java.net.InetSocketAddress;
 
 /**
- * It can be used when nameserver is in the same node.
+ * NameClient proxy for local name server
  */
 public final class NameClientLocalProxy implements NameClientProxy{
 
   private final NameServer nameServer;
 
-  private Identifier localId;
 
   @Inject
   public NameClientLocalProxy(
       final NameServer nameServer) {
     this.nameServer = nameServer;
-  }
-
-  @Override
-  public synchronized Identifier getLocalIdentifier() {
-    return localId;
   }
 
   @Override
@@ -54,16 +48,11 @@ public final class NameClientLocalProxy implements NameClientProxy{
   @Override
   public synchronized void registerId(Identifier id, InetSocketAddress address) throws NetworkException {
     nameServer.register(id, address);
-    localId = id;
   }
 
   @Override
-  public synchronized void unregisterId() throws NetworkException {
-    if (localId == null) {
-      throw new NetworkException("Some id should be registered first to unregisterId");
-    }
-    nameServer.unregister(localId);
-    localId = null;
+  public synchronized void unregisterId(Identifier id) throws NetworkException {
+    nameServer.unregister(id);
   }
 
   @Override

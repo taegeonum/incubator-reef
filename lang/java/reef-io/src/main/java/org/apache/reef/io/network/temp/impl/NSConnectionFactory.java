@@ -19,9 +19,9 @@
 package org.apache.reef.io.network.temp.impl;
 
 import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.Connection;
+import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.exception.NetworkRuntimeException;
-import org.apache.reef.io.network.temp.Connection;
-import org.apache.reef.io.network.temp.ConnectionPool;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.remote.Codec;
@@ -32,40 +32,36 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
 /**
- *
+ * NetworkService connection factory
+ * ClientService uses connection factory to create connections.
  */
 
-public final class NSConnectionFactory<T> implements ConnectionPool<T> {
+public final class NSConnectionFactory<T> implements ConnectionFactory<T> {
 
   private final ConcurrentMap<Identifier, Connection<T>> connectionMap;
   private final Identifier clientServiceId;
   private final Codec<T> eventCodec;
   private final EventHandler<NetworkEvent<T>> eventHandler;
   private final LinkListener<NetworkEvent<T>> eventListener;
-  private final DefaultNetworkServiceImpl networkService;
   private final AtomicBoolean closed;
+  private final DefaultNetworkServiceImpl networkService;
+
 
   public NSConnectionFactory(
+      final DefaultNetworkServiceImpl networkService,
       final Identifier clientServiceId,
       final Codec<T> eventCodec,
       final EventHandler<NetworkEvent<T>> eventHandler,
-      final LinkListener<NetworkEvent<T>> eventListener,
-      final DefaultNetworkServiceImpl networkService) {
+      final LinkListener<NetworkEvent<T>> eventListener) {
 
+    this.networkService = networkService;
     this.connectionMap = new ConcurrentHashMap<>();
     this.closed = new AtomicBoolean();
     this.clientServiceId = clientServiceId;
     this.eventCodec = eventCodec;
     this.eventHandler = eventHandler;
     this.eventListener = eventListener;
-    this.networkService = networkService;
-  }
-
-  @Override
-  public Identifier getClientServiceId() {
-    return clientServiceId;
   }
 
   @Override
@@ -78,7 +74,7 @@ public final class NSConnectionFactory<T> implements ConnectionPool<T> {
     final Connection<T> connection = connectionMap.get(remoteNetworkServiceId);
 
     if (connection == null) {
-      final Connection<T> newConnection = new NSConnection<>(networkService.getNetworkServiceId(), remoteNetworkServiceId, this);
+      final Connection<T> newConnection = new NSConnection<>(this, remoteNetworkServiceId);
       if (connectionMap.putIfAbsent(remoteNetworkServiceId, newConnection) != null) {
         return connectionMap.get(remoteNetworkServiceId);
       } else {
@@ -89,25 +85,16 @@ public final class NSConnectionFactory<T> implements ConnectionPool<T> {
     return connection;
   }
 
-  @Override
-  public Connection<T> getConnection(Identifier remoteNetworkServiceId) {
-    return connectionMap.get(remoteNetworkServiceId);
-  }
-
-  @Override
-  public void close() throws Exception {
-    if (closed.compareAndSet(false, true)) {
-      networkService.removeConnectionPool(clientServiceId);
-    }
-  }
-
   <T> Link<NetworkEvent<T>> openLink(Identifier remoteId) throws NetworkException {
     return networkService.openLink(remoteId);
   }
 
-  void removeConnection(Identifier remoteNetworkServiceId) {
-    connectionMap.remove(remoteNetworkServiceId);
+  void removeConnection(Identifier remoteId) {
+    connectionMap.remove(remoteId);
   }
+
+  Identifier getClientServiceId() { return this.clientServiceId; }
+  Identifier getSrcId() { return this.networkService.getNetworkServiceId(); }
 
   EventHandler<NetworkEvent<T>> getEventHandler() {
     return eventHandler;

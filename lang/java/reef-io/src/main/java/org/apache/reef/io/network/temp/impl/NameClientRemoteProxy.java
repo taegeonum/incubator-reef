@@ -33,13 +33,12 @@ import javax.inject.Inject;
 import java.net.InetSocketAddress;
 
 /**
- *
+ * name client proxy for remote nameserver
  */
 public final class NameClientRemoteProxy implements NameClientProxy {
 
   private final int serverPort;
   private final NameClient nameClient;
-  private Identifier localId;
 
   @Inject
   public NameClientRemoteProxy(
@@ -56,11 +55,6 @@ public final class NameClientRemoteProxy implements NameClientProxy {
   }
 
   @Override
-  public Identifier getLocalIdentifier() {
-    return localId;
-  }
-
-  @Override
   public int getNameServerPort() {
     return serverPort;
   }
@@ -69,17 +63,15 @@ public final class NameClientRemoteProxy implements NameClientProxy {
   public void registerId(Identifier id, InetSocketAddress address) throws NetworkException {
     try {
       nameClient.register(id, address);
-      localId = id;
     } catch(Exception e) {
       throw new NetworkException(e);
     }
   }
 
   @Override
-  public void unregisterId() throws NetworkException {
+  public void unregisterId(Identifier id) throws NetworkException {
     try {
-      nameClient.unregister(localId);
-      localId = null;
+      nameClient.unregister(id);
     } catch(Exception e) {
       throw new NetworkException(e);
     }
