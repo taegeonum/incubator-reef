@@ -19,16 +19,14 @@
 package org.apache.reef.io.network.temp.impl;
 
 import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.Connection;
 import org.apache.reef.io.network.exception.NetworkRuntimeException;
-import org.apache.reef.io.network.temp.Connection;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.remote.transport.Link;
 
-import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 /**
  *
  */
@@ -37,35 +35,28 @@ final class NSConnection<T> implements Connection<T> {
   private Link<NetworkEvent<T>> link;
 
   private final Identifier remoteId;
-  private final NSConnectionPool<T> connectionPool;
-  private final NetworkServiceImpl networkServiceImpl;
   private final AtomicBoolean closed;
+  private final NSConnectionFactory connFactory;
 
   public NSConnection(
-      final Identifier remoteId,
-      final NSConnectionPool<T> connectionPool,
-      final NetworkServiceImpl networkServiceImpl) {
+      final NSConnectionFactory connFactory,
+      final Identifier remoteId) {
 
+    this.connFactory = connFactory;
     this.remoteId = remoteId;
-    this.connectionPool = connectionPool;
     this.closed = new AtomicBoolean();
-    this.networkServiceImpl = networkServiceImpl;
   }
 
   @Override
   public void open() throws NetworkException {
-    try {
-      link = networkServiceImpl.openLink(remoteId);
-    } catch (NetworkException e) {
-      close();
-      throw e;
-    }
+    link = connFactory.openLink(remoteId);
   }
 
   @Override
   public void write(List<T> messageList) {
     final NetworkEvent<T> nsServiceEvent = new NetworkEvent<>(
-        connectionPool.getConnectionId(),
+        connFactory.getClientServiceId(),
+        connFactory.getSrcId(),
         remoteId,
         messageList);
 
@@ -81,38 +72,17 @@ final class NSConnection<T> implements Connection<T> {
   }
 
   @Override
-  public SocketAddress getLocalAddress() {
-    checkIsLinkOpened("get local address");
-    return link.getLocalAddress();
-  }
-
-  @Override
-  public SocketAddress getRemoteAddress() {
-
-    checkIsLinkOpened("get remote address");
-    return link.getRemoteAddress();
-  }
-
-  @Override
-  public Identifier getRemoteId() {
-    return remoteId;
-  }
-
-  @Override
-  public Identifier getConnectionId() {
-    return connectionPool.getConnectionId();
-  }
-
-  @Override
   public void close() {
     if (closed.compareAndSet(false, true)) {
       link = null;
-      connectionPool.removeConnection(remoteId);
+      connFactory.removeConnection(remoteId);
     }
   }
 
+  @Override
   public String toString() {
-    return "Connection[" + remoteId + "] in " + connectionPool.toString();
+    return "Connection from" + connFactory.getSrcId() + ":" + connFactory.getClientServiceId() + " to " +  remoteId + ":" + connFactory.getClientServiceId()
+        ;
   }
 
   private void checkIsLinkOpened(String request) {

@@ -30,21 +30,25 @@ public final class NetworkEvent<T> {
 
   private final List<T> eventList;
   private SocketAddress remoteAddr;
-  private final Identifier connectionId;
+  private final Identifier clientId;
+  private final Identifier srcId;
   private final Identifier remoteId;
 
   /**
    * Constructs a network event
    *
-   * @param connectionId the connection identifier
+   * @param clientId the client service identifier
+   * @param srcId      the source identifier
    * @param remoteId   the remote identifier
    * @param eventList  the list of events
    */
   public NetworkEvent(
-      final Identifier connectionId,
+      final Identifier clientId,
+      final Identifier srcId,
       final Identifier remoteId,
       final List<T> eventList) {
-    this.connectionId = connectionId;
+    this.clientId = clientId;
+    this.srcId = srcId;
     this.remoteId = remoteId;
     this.eventList = eventList;
   }
@@ -68,17 +72,27 @@ public final class NetworkEvent<T> {
    *
    * @return the remote id
    */
-  public Identifier getRemoteId() {
+  public Identifier getDestId() {
     return remoteId;
   }
 
   /**
    * Gets the connection identifier.
    *
-   * @return the connection id
+   * @return the client id
    */
-  public Identifier getConnectionId() {
-    return connectionId;
+  public Identifier getClientId() {
+    return clientId;
+  }
+
+
+  /**
+   * Gets the source identifier.
+   *
+   * @return the source id
+   */
+  public Identifier getSrcId() {
+    return srcId;
   }
 
   /**
@@ -88,7 +102,7 @@ public final class NetworkEvent<T> {
    * @param index
    * @return event at index
    */
-  public T getEventAt(int index) {
+  public T getDataAt(int index) {
     if (index >= eventList.size()) {
       return null;
     }
@@ -100,11 +114,11 @@ public final class NetworkEvent<T> {
    *
    * @return event list size
    */
-  public int getEventListSize() {
+  public int getDataSize() {
     return eventList.size();
   }
 
-  public List<T> getEventList() {
+  public List<T> getData() {
     return eventList;
   }
 

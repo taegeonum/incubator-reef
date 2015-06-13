@@ -48,7 +48,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Naming server implementation.
+ * Naming server implementation
  */
 public class NameServerImpl implements NameServer {
 
@@ -68,9 +68,10 @@ public class NameServerImpl implements NameServer {
    */
   // TODO: All existing NameServer usage is currently new-up, need to make them injected as well.
   @Deprecated
+  @Inject
   public NameServerImpl(
-      final int port,
-      final IdentifierFactory factory,
+      final @Parameter(NameServerParameters.NameServerPort.class) int port,
+      final @Parameter(NameServerParameters.NameServerIdentifierFactory.class) IdentifierFactory factory,
       final LocalAddressProvider localAddressProvider) {
 
     Injector injector = Tang.Factory.getTang().newInjector();
@@ -136,26 +137,7 @@ public class NameServerImpl implements NameServer {
 
 
   /**
-   * Constructs a name server.
-   *
-   * @param port                  a listening port number
-   * @param factory               an identifier factory
-   * @param reefEventStateManager the event state manager used to register name server info
-   * @param localAddressProvider  a local address provider
-   * @deprecated have an instance injected instead
-   */
-  @Deprecated
-  public NameServerImpl(
-      final int port,
-      final IdentifierFactory factory,
-      final ReefEventStateManager reefEventStateManager,
-      final LocalAddressProvider localAddressProvider) {
-    this(port, factory, reefEventStateManager, localAddressProvider, new MessagingTransportFactory());
-  }
-
-
-  /**
-   * Constructs a name server.
+   * Constructs a name server
    *
    * @param port                  a listening port number
    * @param factory               an identifier factory
@@ -203,7 +185,7 @@ public class NameServerImpl implements NameServer {
     return handler;
   }
   /**
-   * Gets port.
+   * Gets port
    */
   @Override
   public int getPort() {
@@ -211,7 +193,7 @@ public class NameServerImpl implements NameServer {
   }
 
   /**
-   * Closes resources.
+   * Closes resources
    */
   @Override
   public void close() throws Exception {
@@ -219,7 +201,7 @@ public class NameServerImpl implements NameServer {
   }
 
   /**
-   * Registers an (identifier, address) mapping locally.
+   * Registers an (identifier, address) mapping locally
    *
    * @param id   an identifier
    * @param addr an Internet socket address
@@ -231,7 +213,7 @@ public class NameServerImpl implements NameServer {
   }
 
   /**
-   * Unregisters an identifier locally.
+   * Unregisters an identifier locally
    *
    * @param id an identifier
    */
@@ -242,7 +224,7 @@ public class NameServerImpl implements NameServer {
   }
 
   /**
-   * Finds an address for an identifier locally.
+   * Finds an address for an identifier locally
    *
    * @param id an identifier
    * @return an Internet socket address
@@ -254,7 +236,7 @@ public class NameServerImpl implements NameServer {
   }
 
   /**
-   * Finds addresses for identifiers locally.
+   * Finds addresses for identifiers locally
    *
    * @param identifiers an iterable of identifiers
    * @return a list of name assignments
@@ -279,7 +261,7 @@ public class NameServerImpl implements NameServer {
 }
 
 /**
- * Naming server transport event handler that invokes a specific naming message handler.
+ * Naming server transport event handler that invokes a specific naming message handler
  */
 class NamingServerHandler implements EventHandler<TransportEvent> {
 
@@ -301,7 +283,7 @@ class NamingServerHandler implements EventHandler<TransportEvent> {
 }
 
 /**
- * Naming lookup request handler.
+ * Naming lookup request handler
  */
 class NamingLookupRequestHandler implements EventHandler<NamingLookupRequest> {
 
@@ -325,7 +307,7 @@ class NamingLookupRequestHandler implements EventHandler<NamingLookupRequest> {
 }
 
 /**
- * Naming register request handler.
+ * Naming register request handler
  */
 class NamingRegisterRequestHandler implements EventHandler<NamingRegisterRequest> {
 
@@ -349,7 +331,7 @@ class NamingRegisterRequestHandler implements EventHandler<NamingRegisterRequest
 }
 
 /**
- * Naming unregister request handler.
+ * Naming unregister request handler
  */
 class NamingUnregisterRequestHandler implements EventHandler<NamingUnregisterRequest> {
 

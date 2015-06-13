@@ -29,16 +29,16 @@ import java.util.Map;
  */
 final class NetworkServiceLinkListener implements LinkListener<NetworkEvent> {
 
-  private final Map<Identifier, NSConnectionPool> connectionPoolMap;
+  private final Map<Identifier, NSConnectionFactory> connectionFactoryMap;
 
   NetworkServiceLinkListener(
-      final Map<Identifier, NSConnectionPool> connectionPoolMap) {
-    this.connectionPoolMap = connectionPoolMap;
+      final Map<Identifier, NSConnectionFactory> connectionFactoryMap) {
+    this.connectionFactoryMap = connectionFactoryMap;
   }
 
   @Override
   public void onSuccess(NetworkEvent message) {
-    final LinkListener listener = connectionPoolMap.get(message.getConnectionId()).getLinkListener();
+    final LinkListener listener = connectionFactoryMap.get(message.getClientId()).getLinkListener();
     if (listener != null) {
       listener.onSuccess(message);
     }
@@ -47,7 +47,7 @@ final class NetworkServiceLinkListener implements LinkListener<NetworkEvent> {
 
   @Override
   public void onException(Throwable cause, SocketAddress remoteAddress, NetworkEvent message) {
-    final LinkListener listener = connectionPoolMap.get(message.getConnectionId()).getLinkListener();
+    final LinkListener listener = connectionFactoryMap.get(message.getClientId()).getLinkListener();
     if (listener != null) {
       listener.onException(cause, remoteAddress, message);
     }

@@ -24,8 +24,8 @@ import javax.inject.Inject;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Created by kgw on 2015. 5. 31..
+/*
+ * Default exception handler
  */
 public final class DefaultNSExceptionHandler implements EventHandler<Exception> {
 

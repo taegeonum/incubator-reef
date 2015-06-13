@@ -30,13 +30,13 @@ import java.util.Map;
  */
 final class NetworkServiceReceiveHandler implements EventHandler<TransportEvent> {
 
-  private final Map<Identifier, NSConnectionPool> connectionPoolMap;
+  private final Map<Identifier, NSConnectionFactory> connectionFactoryMap;
   private final Codec<NetworkEvent> nsEventCodec;
 
   NetworkServiceReceiveHandler(
-      final Map<Identifier, NSConnectionPool> connectionPoolMap,
+      final Map<Identifier, NSConnectionFactory> connectionFactoryMap,
       final Codec<NetworkEvent> nsEventCodec) {
-    this.connectionPoolMap = connectionPoolMap;
+    this.connectionFactoryMap = connectionFactoryMap;
     this.nsEventCodec = nsEventCodec;
   }
 
@@ -44,7 +44,7 @@ final class NetworkServiceReceiveHandler implements EventHandler<TransportEvent>
   public void onNext(final TransportEvent transportEvent) {
     final NetworkEvent decodedEvent = nsEventCodec.decode(transportEvent.getData());
     decodedEvent.setRemoteAddress(transportEvent.getRemoteAddress());
-    final NSConnectionPool connectionPool = connectionPoolMap.get(decodedEvent.getConnectionId());
+    final NSConnectionFactory connectionPool = connectionFactoryMap.get(decodedEvent.getClientId());
     final EventHandler eventHandler = connectionPool.getEventHandler();
     eventHandler.onNext(decodedEvent);
   }

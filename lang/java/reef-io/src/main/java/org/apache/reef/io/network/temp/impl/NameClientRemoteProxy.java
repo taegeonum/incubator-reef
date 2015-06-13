@@ -35,14 +35,14 @@ import java.net.InetSocketAddress;
 /**
  *
  */
-public final class EvaluatorNameClientProxy implements NameClientProxy {
+public final class NameClientRemoteProxy implements NameClientProxy {
 
   private final int serverPort;
   private final NameClient nameClient;
   private Identifier localId;
 
   @Inject
-  public EvaluatorNameClientProxy(
+  public NameClientRemoteProxy(
       final @Parameter(NameServerParameters.NameServerAddr.class) String serverAddr,
       final @Parameter(NameServerParameters.NameServerPort.class) int serverPort,
       final @Parameter(NameServerParameters.NameServerIdentifierFactory.class) IdentifierFactory factory,

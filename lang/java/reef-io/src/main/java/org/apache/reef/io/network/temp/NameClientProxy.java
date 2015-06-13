@@ -10,12 +10,6 @@ import java.net.InetSocketAddress;
  * Proxy registers and un-registers an identifier and can derive its address
  */
 public interface NameClientProxy  extends NamingLookup, AutoCloseable {
-  /**
-   * Return the latest registered identifier through this proxy
-   *
-   * @return identifier of naming proxy
-   */
-  public Identifier getLocalIdentifier();
 
   /**
    * NameClientProxy must collaborate with a name server and this method
@@ -26,7 +20,7 @@ public interface NameClientProxy  extends NamingLookup, AutoCloseable {
   public int getNameServerPort();
 
   /**
-   * Registers local id
+   * Registers id
    *
    * @param id
    * @param address
@@ -34,7 +28,7 @@ public interface NameClientProxy  extends NamingLookup, AutoCloseable {
   public void registerId(Identifier id, InetSocketAddress address) throws NetworkException;
 
   /**
-   * Unregisters local id
+   * Unregisters id
    */
-  public void unregisterId() throws NetworkException;
+  public void unregisterId(Identifier id) throws NetworkException;
 }

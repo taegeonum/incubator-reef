@@ -39,9 +39,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- *
+ * Default NetworkService implementation
  */
-public final class NetworkServiceImpl implements NetworkService {
+public final class DefaultNetworkServiceImpl implements NetworkService {
 
   private final IdentifierFactory idFactory;
   private final NameClientProxy nameClientProxy;
@@ -52,7 +52,7 @@ public final class NetworkServiceImpl implements NetworkService {
   private final ConcurrentMap<Identifier, NSConnectionPool> connectionPoolMap;
 
   @Inject
-  public NetworkServiceImpl(
+  public DefaultNetworkServiceImpl(
       final @Parameter(NetworkServiceParameter.IdentifierFactory.class) IdentifierFactory idFactory,
       final @Parameter(NetworkServiceParameter.Port.class) int nsPort,
       final @Parameter(NetworkServiceParameter.ExceptionHandler.class) EventHandler<Exception> exceptionHandler,

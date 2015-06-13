@@ -16,20 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-[
-{
-  "namespace" : "org.apache.reef.io.network.avro",
-  "type" : "record",
-  "name" : "AvroNetworkServiceEvent",
-  "fields" : [
-    {"name" : "client_id", "type" : ["string"]},
-    {"name" : "src_id", "type" : ["string"]},
-    {"name" : "remote_id", "type" : ["string"]},
-    {"name" : "data_list", "type" : {
-        "type" : "array",
-        "items" : "bytes"
-      }
-    }
-  ]
+package org.apache.reef.io.network.temp;
+
+import org.apache.reef.io.network.util.StringIdentifierFactory;
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.tang.annotations.NamedParameter;
+
+/**
+ *
+ */
+public final class NetworkServiceParameters {
+
+  @NamedParameter(default_value = "0")
+  public static class Port implements Name<Integer> {
+  }
+
+  @NamedParameter(default_class = StringIdentifierFactory.class)
+  public static class IdentifierFactory implements Name<org.apache.reef.wake.IdentifierFactory> {
+  }
 }
-]

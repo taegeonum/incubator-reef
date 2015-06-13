@@ -16,28 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.temp;
+package org.apache.reef.wake.remote.impl;
 
-import org.apache.reef.io.network.temp.impl.DefaultNSExceptionHandler;
-import org.apache.reef.io.network.util.StringIdentifierFactory;
-import org.apache.reef.tang.annotations.Name;
-import org.apache.reef.tang.annotations.NamedParameter;
-import org.apache.reef.wake.EventHandler;
+import org.apache.reef.wake.EStage;
 
-/**
- *
- */
-public final class NetworkServiceParameter {
+import javax.inject.Inject;
 
-  @NamedParameter(default_value = "0")
-  public static class Port implements Name<Integer> {
+public class DefaultTransportEStage implements EStage<TransportEvent> {
+
+  @Inject
+  public DefaultTransportEStage() {
   }
 
-  @NamedParameter(default_class = StringIdentifierFactory.class)
-  public static class IdentifierFactory implements Name<org.apache.reef.wake.IdentifierFactory> {
+  @Override
+  public void onNext(TransportEvent value) {
   }
 
-  @NamedParameter(default_class = DefaultNSExceptionHandler.class)
-  public static class ExceptionHandler implements Name<EventHandler<Exception>> {
+  @Override
+  public void close() throws Exception {
   }
 }

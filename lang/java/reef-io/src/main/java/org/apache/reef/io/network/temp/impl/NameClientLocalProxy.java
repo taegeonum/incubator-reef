@@ -27,16 +27,16 @@ import javax.inject.Inject;
 import java.net.InetSocketAddress;
 
 /**
- *
+ * It can be used when nameserver is in the same node.
  */
-public final class DriverNameClientProxy implements NameClientProxy{
+public final class NameClientLocalProxy implements NameClientProxy{
 
   private final NameServer nameServer;
 
   private Identifier localId;
 
   @Inject
-  public DriverNameClientProxy(
+  public NameClientLocalProxy(
       final NameServer nameServer) {
     this.nameServer = nameServer;
   }

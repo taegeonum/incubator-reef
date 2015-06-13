@@ -18,98 +18,269 @@
  */
 package org.apache.reef.services.network.temp;
 
+import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.Connection;
+import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.naming.NameServer;
-import org.apache.reef.io.network.naming.NameServerImpl;
-import org.apache.reef.io.network.temp.Connection;
-import org.apache.reef.io.network.temp.ConnectionPool;
 import org.apache.reef.io.network.temp.NetworkService;
-import org.apache.reef.io.network.temp.impl.DefaultNSExceptionHandler;
-import org.apache.reef.io.network.temp.impl.EvaluatorNameClientProxy;
+import org.apache.reef.io.network.temp.NetworkServiceParameters;
 import org.apache.reef.io.network.temp.impl.NetworkEvent;
-import org.apache.reef.io.network.temp.impl.NetworkServiceImpl;
+import org.apache.reef.io.network.temp.impl.NetworkServiceConfiguration;
 import org.apache.reef.io.network.util.StringCodec;
 import org.apache.reef.io.network.util.StringIdentifierFactory;
+import org.apache.reef.services.network.util.Monitor;
+import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.Injector;
+import org.apache.reef.tang.Tang;
+import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
 import org.apache.reef.wake.remote.address.LocalAddressProviderFactory;
-import org.apache.reef.wake.remote.transport.netty.MessagingTransportFactory;
+import org.apache.reef.wake.remote.impl.ObjectSerializableCodec;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Created by kgw on 2015. 5. 31..
+ * Network service test
  */
 public class NetworkServiceTest {
-  @Test
-  public void networkServiceTest() throws Exception {
-    IdentifierFactory factory = new StringIdentifierFactory();
-    LocalAddressProvider localAddressProvider = LocalAddressProviderFactory.getInstance();
-    NameServer server = new NameServerImpl(0, factory, localAddressProvider);
-    int nameServerPort = server.getPort();
-    String localAddress = localAddressProvider.getLocalAddress();
-    EvaluatorNameClientProxy proxy = new EvaluatorNameClientProxy(
-        localAddress,
-        nameServerPort,
-        factory,
-        30000,
-        5,
-        1000,
-        localAddressProvider
-    );
+  private static final Logger LOG = Logger.getLogger(NetworkServiceTest.class.getName());
 
-    NetworkService a = new NetworkServiceImpl(factory, 0, new DefaultNSExceptionHandler()
-        , new MessagingTransportFactory(), proxy);
+  private final LocalAddressProvider localAddressProvider;
+  private final String localAddress;
 
-    a.registerId("a");
-
-    NetworkService b = new NetworkServiceImpl(factory, 0, new DefaultNSExceptionHandler()
-        , new MessagingTransportFactory(), proxy);
-
-    b.registerId("b");
-
-
-    Identifier connectionId = factory.getNewInstance("connection");
-
-    Object key = new Object();
-    ConnectionPool<String> connPoolA = a.newConnectionPool(connectionId, new StringCodec(), new StringEventHandler(null));
-    ConnectionPool<String> connPoolB = b.newConnectionPool(connectionId, new StringCodec(), new StringEventHandler(key));
-
-    Connection<String> connAtoB = connPoolA.newConnection(b.getNetworkServiceId());
-    connAtoB.open();
-    for (int i = 0; i < 10 ; i++) {
-      connAtoB.write("hihi");
-    }
-    synchronized(key) {
-      key.wait();
-    }
-
-    System.out.println("Success");
-    a.close();
-    b.close();
+  public NetworkServiceTest() throws InjectionException {
+    localAddressProvider = LocalAddressProviderFactory.getInstance();
+    localAddress = localAddressProvider.getLocalAddress();
   }
 
-  class StringEventHandler implements EventHandler<NetworkEvent<String>> {
-    private Object key;
-    private AtomicInteger count = new AtomicInteger();
-    StringEventHandler(Object key) {
-      this.key = key;
+  @Rule
+  public TestName name = new TestName();
+
+  /**
+   * NetworkService messaging test
+   */
+  @Test
+  public void testMessagingNetworkService() throws Exception {
+    LOG.log(Level.FINEST, name.getMethodName());
+
+    // name server
+    Injector injector = Tang.Factory.getTang().newInjector();
+    NameServer nameServer = injector.getInstance(NameServer.class);
+    int port = nameServer.getPort();
+
+    // task2 conf
+    Configuration conf = NetworkServiceConfiguration.CONF
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task2")
+        .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
+        .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NAME_SERVICE_PORT, port)
+        .build();
+
+    // task1 conf
+    Configuration conf2 = NetworkServiceConfiguration.CONF
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task1")
+        .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
+        .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NAME_SERVICE_PORT, port)
+        .build();
+
+    final int numMessages = 10;
+    final Monitor monitor = new Monitor();
+
+    LOG.log(Level.FINEST, "=== Test network service receiver start");
+    // network service for task2
+    Injector ij2 = injector.forkInjector(conf);
+    final NetworkService ns2 = ij2.getInstance(NetworkService.class);
+    IdentifierFactory factory = ij2.getNamedInstance(NetworkServiceParameters.IdentifierFactory.class);
+
+    // connection for receiving messages
+    ConnectionFactory<String> receiver = ns2.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task2", monitor, numMessages));
+
+    // network service for task1
+    LOG.log(Level.FINEST, "=== Test network service sender start");
+    Injector ij3 = injector.forkInjector(conf2);
+    final NetworkService ns1 = ij3.getInstance(NetworkService.class);
+
+    // connection for sending messages
+    ConnectionFactory<String> sender = ns1.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task1", monitor, numMessages));
+
+    final Identifier destId = factory.getNewInstance("task2");
+    final org.apache.reef.io.network.Connection<String> conn = sender.newConnection(destId);
+    try {
+      conn.open();
+      for (int count = 0; count < numMessages; ++count) {
+        conn.write("hello! " + count);
+      }
+      monitor.mwait();
+
+    } catch (NetworkException e) {
+      e.printStackTrace();
     }
-    @Override
-    public void onNext(NetworkEvent<String> value) {
-      System.out.println(value);
-      if (count.incrementAndGet() == 10) {
-        synchronized (key) {
-          key.notify();
+    conn.close();
+
+    ns1.close();
+    ns2.close();
+
+    nameServer.close();
+  }
+
+  /**
+   * Multiple client services test
+   */
+  @Test
+  public void testMultipleClientNetworkService() throws Exception {
+    LOG.log(Level.FINEST, name.getMethodName());
+
+    ExecutorService executor = Executors.newFixedThreadPool(5);
+
+    // name server
+    Injector injector = Tang.Factory.getTang().newInjector();
+    NameServer nameServer = injector.getInstance(NameServer.class);
+    int port = nameServer.getPort();
+
+    // task2 conf
+    Configuration conf = NetworkServiceConfiguration.CONF
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task2")
+        .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
+        .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NAME_SERVICE_PORT, port)
+        .build();
+
+    // task1 conf
+    Configuration conf2 = NetworkServiceConfiguration.CONF
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_ID, "task1")
+        .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddress)
+        .set(NetworkServiceConfiguration.NAME_SERVER_IDENTIFIER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NETWORK_SERVICE_IDENDITIFER_FACTORY, StringIdentifierFactory.class)
+        .set(NetworkServiceConfiguration.NAME_SERVICE_PORT, port)
+        .build();
+
+    final int groupcommMessages = 10;
+    final int shuffleMessges = 20;
+    final Monitor monitor = new Monitor();
+    final Monitor monitor2 = new Monitor();
+
+    LOG.log(Level.FINEST, "=== Test network service receiver start");
+    // network service for task2
+    Injector ij2 = injector.forkInjector(conf);
+    final NetworkService ns2 = ij2.getInstance(NetworkService.class);
+    IdentifierFactory factory = ij2.getNamedInstance(NetworkServiceParameters.IdentifierFactory.class);
+
+    // connection for receiving messages
+    ConnectionFactory<String> gcReceiver = ns2.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task2", monitor, groupcommMessages));
+    ConnectionFactory<Integer> shuffleReceiver = ns2.newConnectionFactory(factory.getNewInstance("Shuffle"), new ObjectSerializableCodec<Integer>(), new MessageHandler<Integer>("task2", monitor2, groupcommMessages));
+
+    // network service for task1
+    LOG.log(Level.FINEST, "=== Test network service sender start");
+    Injector ij3 = injector.forkInjector(conf2);
+    final NetworkService ns1 = ij3.getInstance(NetworkService.class);
+
+    // connection for sending messages
+    ConnectionFactory<String> gcSender = ns1.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task1", monitor, shuffleMessges));
+    ConnectionFactory<Integer> shuffleSender = ns1.newConnectionFactory(factory.getNewInstance("Shuffle"), new ObjectSerializableCodec<Integer>(), new MessageHandler<Integer>("task1", monitor2, shuffleMessges));
+
+    final Identifier destId = factory.getNewInstance("task2");
+    final Connection<String> conn = gcSender.newConnection(destId);
+    final Connection<Integer> conn2 = shuffleSender.newConnection(destId);
+    try {
+      conn.open();
+      conn2.open();
+
+      executor.submit(new Runnable() {
+        @Override
+        public void run() {
+          for (int count = 0; count < groupcommMessages; ++count) {
+            try {
+              conn.write("hello! " + count);
+            } catch (NetworkException e) {
+              throw new RuntimeException(e);
+            }
+          }
         }
+      });
+
+      executor.submit(new Runnable() {
+        @Override
+        public void run() {
+          for (int count = 0; count < shuffleMessges; ++count) {
+            try {
+              conn2.write(count);
+            } catch (NetworkException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }
+      });
+
+      monitor.mwait();
+      monitor2.mwait();
+
+    } catch (NetworkException e) {
+      e.printStackTrace();
+    }
+    conn.close();
+
+    ns1.close();
+    ns2.close();
+
+    executor.shutdown();
+    nameServer.close();
+  }
+
+  /**
+   * Test message handler
+   */
+  class MessageHandler<T> implements EventHandler<NetworkEvent<T>> {
+
+    private final String name;
+    private final int expected;
+    private final Monitor monitor;
+    private AtomicInteger count = new AtomicInteger(0);
+
+    MessageHandler(String name, Monitor monitor, int expected) {
+      this.name = name;
+      this.monitor = monitor;
+      this.expected = expected;
+    }
+
+    @Override
+    public void onNext(NetworkEvent<T> value) {
+      count.incrementAndGet();
+      LOG.log(Level.FINEST,
+          "OUT: {0} received {1} from {2} to {3}",
+          new Object[]{name, value, value.getSrcId(), value.getDestId()});
+
+      for (final T obj : value.getData()) {
+        LOG.log(Level.FINEST, "OUT: data: {0}", obj);
+      }
+
+      if (count.get() == expected) {
+        monitor.mnotify();
       }
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    NetworkServiceTest t = new NetworkServiceTest();
-    t.networkServiceTest();
+  /**
+   * Test exception handler
+   */
+  class ExceptionHandler implements EventHandler<Exception> {
+    @Override
+    public void onNext(Exception error) {
+      System.err.println(error);
+    }
   }
+
 }

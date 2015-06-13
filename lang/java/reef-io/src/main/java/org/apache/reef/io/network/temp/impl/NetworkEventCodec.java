@@ -34,20 +34,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- *
- */
+
 final class NetworkEventCodec implements Codec<NetworkEvent> {
 
   private final IdentifierFactory idFactory;
-  private final Map<Identifier, NSConnectionPool> connectionPoolMap;
+  private final Map<Identifier, NSConnectionFactory> connectionFactoryMap;
 
   NetworkEventCodec(
       final IdentifierFactory idFactory,
-      final Map<Identifier, NSConnectionPool> connectionPoolMap) {
+      final Map<Identifier, NSConnectionFactory> connectionFactoryMap) {
 
     this.idFactory = idFactory;
-    this.connectionPoolMap = connectionPoolMap;
+    this.connectionFactoryMap = connectionFactoryMap;
   }
 
   @Override
@@ -61,18 +59,26 @@ final class NetworkEventCodec implements Codec<NetworkEvent> {
       throw new NetworkRuntimeException("Improper data was attempted to decode in NetworkEventCodec", e);
     }
 
-    final Identifier connectionId = idFactory.getNewInstance(avroNetworkServiceEvent.getConnectionId().toString());
+    final Identifier clientId = idFactory.getNewInstance(avroNetworkServiceEvent.getClientId().toString());
+    final Identifier srcId = idFactory.getNewInstance(avroNetworkServiceEvent.getSrcId().toString());
     final Identifier remoteId = idFactory.getNewInstance(avroNetworkServiceEvent.getRemoteId().toString());
 
     final List<ByteBuffer> byteBufferList = avroNetworkServiceEvent.getDataList();
     final List dataList = new ArrayList(byteBufferList.size());
-    final Codec eventCodec = connectionPoolMap.get(connectionId).getCodec();
-    for (ByteBuffer byteBuffer : byteBufferList) {
-      dataList.add(eventCodec.decode(byteBuffer.array()));
+
+    try {
+      final Codec eventCodec = connectionFactoryMap.get(clientId).getCodec();
+      for (ByteBuffer byteBuffer : byteBufferList) {
+        dataList.add(eventCodec.decode(byteBuffer.array()));
+      }
+    } catch (NullPointerException e) {
+      throw new NetworkRuntimeException("Data from " + remoteId + " to " + srcId + ":" + clientId +
+          " cannot be decoded because there is no binding codec of " + clientId);
     }
 
     return new NetworkEvent(
-        connectionId,
+        clientId,
+        srcId,
         remoteId,
         dataList
     );
@@ -80,18 +86,19 @@ final class NetworkEventCodec implements Codec<NetworkEvent> {
 
   @Override
   public byte[] encode(NetworkEvent obj) {
-    final List dataList = obj.getEventList();
-    final List<ByteBuffer> byteBufferList = new ArrayList<>(dataList.size());
+    final Iterable dataList = obj.getData();
+    final List<ByteBuffer> byteBufferList = new ArrayList<>(obj.getDataSize());
 
-    final Codec eventCodec = connectionPoolMap.get(obj.getConnectionId()).getCodec();
+    final Codec eventCodec = connectionFactoryMap.get(obj.getClientId()).getCodec();
 
     for (Object event : dataList) {
       byteBufferList.add(ByteBuffer.wrap(eventCodec.encode(event)));
     }
 
     final AvroNetworkServiceEvent event = AvroNetworkServiceEvent.newBuilder()
-        .setConnectionId(obj.getConnectionId().toString())
-        .setRemoteId(obj.getRemoteId().toString())
+        .setClientId(obj.getClientId().toString())
+        .setSrcId(obj.getSrcId().toString())
+        .setRemoteId(obj.getDestId().toString())
         .setDataList(byteBufferList)
         .build();
 

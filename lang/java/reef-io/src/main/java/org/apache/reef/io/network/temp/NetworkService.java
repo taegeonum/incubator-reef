@@ -18,9 +18,9 @@
  */
 package org.apache.reef.io.network.temp;
 
-import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.ConnectionFactory;
+import org.apache.reef.io.network.temp.impl.DefaultNetworkServiceImpl;
 import org.apache.reef.io.network.temp.impl.NetworkEvent;
-import org.apache.reef.io.network.temp.impl.NetworkServiceImpl;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
@@ -29,20 +29,13 @@ import org.apache.reef.wake.remote.transport.LinkListener;
 
 import java.net.SocketAddress;
 
-/**
- * Created by kgw on 2015. 5. 31..
- */
-@DefaultImplementation(NetworkServiceImpl.class)
+@DefaultImplementation(DefaultNetworkServiceImpl.class)
 public interface NetworkService extends AutoCloseable{
 
-  public void registerId(final String networkServiceId) throws NetworkException;
+  public <T> ConnectionFactory<T> newConnectionFactory(final Identifier clientServiceId, final Codec<T> codec,
+                                                       final EventHandler<NetworkEvent<T>> eventHandler);
 
-  public void unregisterId() throws NetworkException;
-
-  public <T> ConnectionPool<T> newConnectionPool(final Identifier connectionId, final Codec<T> codec,
-                                                 final EventHandler<NetworkEvent<T>> eventHandler);
-
-  public <T> ConnectionPool<T> newConnectionPool(final Identifier connectionId, final Codec<T> codec,
+  public <T> ConnectionFactory<T> newConnectionFactory(final Identifier clientServiceId, final Codec<T> codec,
                                                  final EventHandler<NetworkEvent<T>> eventHandler,
                                                  final LinkListener<NetworkEvent<T>> linkListener);
 
