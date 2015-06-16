@@ -18,18 +18,12 @@
  */
 package org.apache.reef.io.network.temp.impl;
 
-import org.apache.avro.io.*;
-import org.apache.avro.specific.SpecificDatumReader;
-import org.apache.avro.specific.SpecificDatumWriter;
-import org.apache.reef.io.network.avro.AvroNetworkServiceEvent;
-import org.apache.reef.io.network.exception.NetworkRuntimeException;
+import org.apache.reef.io.network.impl.StreamingCodec;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.Codec;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,81 +31,86 @@ import java.util.Map;
 
 final class NetworkEventCodec implements Codec<NetworkEvent> {
 
-  private final IdentifierFactory idFactory;
+  private final IdentifierFactory factory;
   private final Map<Identifier, NSConnectionFactory> connectionFactoryMap;
+  private final Map<Identifier, Boolean> isStreamingCodecMap;
 
   NetworkEventCodec(
-      final IdentifierFactory idFactory,
-      final Map<Identifier, NSConnectionFactory> connectionFactoryMap) {
+      final IdentifierFactory factory,
+      final Map<Identifier, NSConnectionFactory> connectionFactoryMap,
+      final Map<Identifier, Boolean> isStreamingCodecMap) {
 
-    this.idFactory = idFactory;
+    this.factory = factory;
     this.connectionFactoryMap = connectionFactoryMap;
+    this.isStreamingCodecMap = isStreamingCodecMap;
   }
 
   @Override
   public NetworkEvent decode(byte[] data) {
-    final AvroNetworkServiceEvent avroNetworkServiceEvent;
-    final DatumReader<AvroNetworkServiceEvent> reader = new SpecificDatumReader<>(AvroNetworkServiceEvent.class);
-    final BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(data, null);
-    try {
-      avroNetworkServiceEvent = reader.read(null, decoder);
-    } catch (IOException e) {
-      throw new NetworkRuntimeException("Improper data was attempted to decode in NetworkEventCodec", e);
-    }
 
-    final Identifier clientId = idFactory.getNewInstance(avroNetworkServiceEvent.getClientId().toString());
-    final Identifier srcId = idFactory.getNewInstance(avroNetworkServiceEvent.getSrcId().toString());
-    final Identifier remoteId = idFactory.getNewInstance(avroNetworkServiceEvent.getRemoteId().toString());
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(data)) {
+      try (DataInputStream dais = new DataInputStream(bais)) {
+        final Identifier clientId = factory.getNewInstance(dais.readUTF());
+        final Identifier srcId = factory.getNewInstance(dais.readUTF());
+        final Identifier destId = factory.getNewInstance(dais.readUTF());
+        final int size = dais.readInt();
+        final List list = new ArrayList(size);
+        final boolean isStreamingCodec = isStreamingCodecMap.get(clientId);
+        final Codec codec = connectionFactoryMap.get(clientId).getCodec();
 
-    final List<ByteBuffer> byteBufferList = avroNetworkServiceEvent.getDataList();
-    final List dataList = new ArrayList(byteBufferList.size());
+        if (isStreamingCodec) {
+          for (int i = 0; i < size; i++) {
+            list.add(((StreamingCodec) codec).decodeFromStream(dais));
+          }
+        } else {
+          for (int i = 0; i < size; i++) {
+            int byteSize = dais.readInt();
+            byte[] bytes = new byte[byteSize];
+            dais.read(bytes);
+            list.add(codec.decode(bytes));
+          }
+        }
 
-    try {
-      final Codec eventCodec = connectionFactoryMap.get(clientId).getCodec();
-      for (ByteBuffer byteBuffer : byteBufferList) {
-        dataList.add(eventCodec.decode(byteBuffer.array()));
+        return new NetworkEvent(
+            clientId,
+            srcId,
+            destId,
+            list
+        );
       }
-    } catch (NullPointerException e) {
-      throw new NetworkRuntimeException("Data from " + remoteId + " to " + srcId + ":" + clientId +
-          " cannot be decoded because there is no binding codec of " + clientId);
+    } catch (final IOException e) {
+      throw new RuntimeException("IOException", e);
     }
-
-    return new NetworkEvent(
-        clientId,
-        srcId,
-        remoteId,
-        dataList
-    );
   }
 
   @Override
   public byte[] encode(NetworkEvent obj) {
-    final Iterable dataList = obj.getData();
-    final List<ByteBuffer> byteBufferList = new ArrayList<>(obj.getDataSize());
+    final Codec codec = connectionFactoryMap.get(obj.getClientId()).getCodec();
+    final Boolean isStreamingCodec = isStreamingCodecMap.get(obj.getClientId());
 
-    final Codec eventCodec = connectionFactoryMap.get(obj.getClientId()).getCodec();
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      try (DataOutputStream daos = new DataOutputStream(baos)) {
+        daos.writeUTF(obj.getClientId().toString());
+        daos.writeUTF(obj.getSrcId().toString());
+        daos.writeUTF(obj.getDestId().toString());
+        daos.writeInt(obj.getData().size());
 
-    for (Object event : dataList) {
-      byteBufferList.add(ByteBuffer.wrap(eventCodec.encode(event)));
+        if (isStreamingCodec) {
+          for (final Object rec : obj.getData()) {
+            ((StreamingCodec) codec).encodeToStream(rec, daos);
+          }
+        } else {
+          final Iterable dataList = obj.getData();
+          for (Object event : dataList) {
+            byte[] bytes = codec.encode(event);
+            daos.writeInt(bytes.length);
+            daos.write(bytes);
+          }
+        }
+        return baos.toByteArray();
+      }
+    } catch (final IOException e) {
+      throw new RuntimeException("IOException", e);
     }
-
-    final AvroNetworkServiceEvent event = AvroNetworkServiceEvent.newBuilder()
-        .setClientId(obj.getClientId().toString())
-        .setSrcId(obj.getSrcId().toString())
-        .setRemoteId(obj.getDestId().toString())
-        .setDataList(byteBufferList)
-        .build();
-
-    final byte[] bytes;
-    try (final ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-      final DatumWriter<AvroNetworkServiceEvent> writer = new SpecificDatumWriter<>(AvroNetworkServiceEvent.class);
-      final BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(bos, null);
-      writer.write(event, encoder);
-      encoder.flush();
-      bytes = bos.toByteArray();
-    } catch (IOException e) {
-      throw new NetworkRuntimeException("Improper data was attempted to encode in NetworkEventCodec", e);
-    }
-    return bytes;
   }
 }

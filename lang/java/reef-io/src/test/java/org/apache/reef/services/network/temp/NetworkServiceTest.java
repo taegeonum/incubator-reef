@@ -94,7 +94,7 @@ public class NetworkServiceTest {
         .set(NetworkServiceConfiguration.NAME_SERVICE_PORT, port)
         .build();
 
-    final int numMessages = 10;
+    final int numMessages = 2000;
     final Monitor monitor = new Monitor();
 
     LOG.log(Level.FINEST, "=== Test network service receiver start");
@@ -165,8 +165,8 @@ public class NetworkServiceTest {
         .set(NetworkServiceConfiguration.NAME_SERVICE_PORT, port)
         .build();
 
-    final int groupcommMessages = 10;
-    final int shuffleMessges = 20;
+    final int groupcommMessages = 1000;
+    final int shuffleMessges = 2000;
     final Monitor monitor = new Monitor();
     final Monitor monitor2 = new Monitor();
 
@@ -179,7 +179,7 @@ public class NetworkServiceTest {
 
     // connection for receiving messages
     ConnectionFactory<String> gcReceiver = ns2.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task2", monitor, groupcommMessages));
-    ConnectionFactory<Integer> shuffleReceiver = ns2.newConnectionFactory(factory.getNewInstance("Shuffle"), new ObjectSerializableCodec<Integer>(), new MessageHandler<Integer>("task2", monitor2, groupcommMessages));
+    ConnectionFactory<Integer> shuffleReceiver = ns2.newConnectionFactory(factory.getNewInstance("Shuffle"), new ObjectSerializableCodec<Integer>(), new MessageHandler<Integer>("task2", monitor2, shuffleMessges));
 
     // network service for task1
     LOG.log(Level.FINEST, "=== Test network service sender start");
@@ -188,7 +188,7 @@ public class NetworkServiceTest {
     ns1.registerId(factory.getNewInstance("task1"));
 
     // connection for sending messages
-    ConnectionFactory<String> gcSender = ns1.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task1", monitor, shuffleMessges));
+    ConnectionFactory<String> gcSender = ns1.newConnectionFactory(factory.getNewInstance("GroupComm"), new StringCodec(), new MessageHandler<String>("task1", monitor, groupcommMessages));
     ConnectionFactory<Integer> shuffleSender = ns1.newConnectionFactory(factory.getNewInstance("Shuffle"), new ObjectSerializableCodec<Integer>(), new MessageHandler<Integer>("task1", monitor2, shuffleMessges));
 
     final Identifier destId = factory.getNewInstance("task2");
@@ -258,12 +258,12 @@ public class NetworkServiceTest {
     @Override
     public void onNext(NetworkEvent<T> value) {
       count.incrementAndGet();
-      LOG.log(Level.FINEST,
+      LOG.log(Level.INFO,
           "OUT: {0} received {1} from {2} to {3}",
           new Object[]{name, value, value.getSrcId(), value.getDestId()});
 
       for (final T obj : value.getData()) {
-        LOG.log(Level.FINEST, "OUT: data: {0}", obj);
+        LOG.log(Level.INFO, "OUT: data: {0}", obj);
       }
 
       if (count.get() == expected) {

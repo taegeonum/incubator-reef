@@ -21,6 +21,7 @@ package org.apache.reef.io.network.temp.impl;
 import org.apache.reef.exception.evaluator.NetworkException;
 import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.exception.NetworkRuntimeException;
+import org.apache.reef.io.network.impl.StreamingCodec;
 import org.apache.reef.io.network.temp.NameClientProxy;
 import org.apache.reef.io.network.temp.NetworkService;
 import org.apache.reef.io.network.temp.NetworkServiceParameters;
@@ -51,6 +52,7 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
   private final Transport transport;
   private final EventHandler<TransportEvent> recvHandler;
   private final ConcurrentMap<Identifier, NSConnectionFactory> connectionFactoryMap;
+  private final ConcurrentMap<Identifier, Boolean> isStreamingCodecMap;
   private Identifier myId;
   private final Codec<NetworkEvent> nsCodec;
   private final LinkListener<NetworkEvent> nsLinkListener;
@@ -64,7 +66,8 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
 
     this.idFactory = idFactory;
     this.connectionFactoryMap = new ConcurrentHashMap<>();
-    this.nsCodec = new NetworkEventCodec(idFactory, connectionFactoryMap);
+    this.isStreamingCodecMap = new ConcurrentHashMap<>();
+    this.nsCodec = new NetworkEventCodec(idFactory, connectionFactoryMap, isStreamingCodecMap);
     this.nsLinkListener = new NetworkServiceLinkListener(connectionFactoryMap);
     this.recvHandler = new NetworkServiceReceiveHandler(connectionFactoryMap, nsCodec);
     this.nameClientProxy = nameClientProxy;
@@ -104,6 +107,8 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
         codec, eventHandler, linkListener);
     if (connectionFactoryMap.putIfAbsent(clientServiceId, connectionFactory) != null) {
       throw new NetworkRuntimeException(connectionFactory.toString() + " was already registered.");
+    } else {
+      isStreamingCodecMap.put(clientServiceId, codec instanceof StreamingCodec);
     }
 
     return connectionFactory;
