@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -58,7 +58,7 @@ public class NonBlockingJoin implements StaticObservable {
             out.onNext(t);
           }
         }
-        if (sentCompleted.getAndSet(true) == false) {
+        if (!sentCompleted.getAndSet(true)) {
           out.onCompleted();
         }
       }

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -95,7 +95,7 @@ public class TaskNodeImpl implements TaskNode {
   }
 
   /**
-   * * Methods pertaining to my status change ***
+   * * Methods pertaining to my status change ***.
    */
   @Override
   public void onFailedTask() {
@@ -158,7 +158,7 @@ public class TaskNodeImpl implements TaskNode {
   }
 
   /**
-   * * Methods pertaining to my status change ends ***
+   * * Methods pertaining to my status change ends ***.
    */
 
   @Override
@@ -235,7 +235,7 @@ public class TaskNodeImpl implements TaskNode {
   }
 
   /**
-   * * Methods pertaining to my neighbors status change ends ***
+   * * Methods pertaining to my neighbors status change ends ***.
    */
 
   @Override
@@ -307,7 +307,7 @@ public class TaskNodeImpl implements TaskNode {
 
   @Override
   public boolean resetTopologySetupSent() {
-    LOG.entering("TaskNodeImpl", "resetTopologySetupSent", new Object[]{getQualifiedName(),});
+    LOG.entering("TaskNodeImpl", "resetTopologySetupSent", new Object[]{getQualifiedName(), });
     final boolean retVal = topoSetupSent.compareAndSet(true, false);
     LOG.exiting("TaskNodeImpl", "resetTopologySetupSent", getQualifiedName() + retVal);
     return retVal;
@@ -461,11 +461,7 @@ public class TaskNodeImpl implements TaskNode {
     if (obj != this) {
       if (obj instanceof TaskNodeImpl) {
         final TaskNodeImpl that = (TaskNodeImpl) obj;
-        if (this.taskId.equals(that.taskId) && this.version.get() == that.version.get()) {
-          return true;
-        } else {
-          return false;
-        }
+        return (this.taskId.equals(that.taskId) && this.version.get() == that.version.get());
       } else {
         return false;
       }

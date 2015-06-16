@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -109,6 +109,30 @@ public class ClockTest {
       // The later Alarm should have fired, since 5500 > 5000 ms have passed:
       Assert.assertEquals(1, laterAlarmRecorder.events.size());
     } finally {
+      clock.close();
+    }
+  }
+
+  @Test
+  public void testMultipleCloseCalls() throws Exception {
+    LoggingUtils.setLoggingLevel(Level.FINE);
+
+    final int numThreads = 3;
+    final RuntimeClock clock = buildClock();
+    new Thread(clock).start();
+    final ThreadPoolStage<Alarm> stage = new ThreadPoolStage<>(new EventHandler<Alarm>() {
+      @Override
+      public void onNext(final Alarm value) {
+        clock.close();
+      }
+    }, numThreads);
+
+    try {
+      for (int i = 0; i < numThreads; ++i)
+        stage.onNext(null);
+      Thread.sleep(1000);
+    } finally {
+      stage.close();
       clock.close();
     }
   }

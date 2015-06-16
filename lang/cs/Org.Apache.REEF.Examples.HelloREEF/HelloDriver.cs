@@ -18,47 +18,27 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Org.Apache.REEF.Common.Files;
+using Org.Apache.REEF.Common.Tasks;
 using Org.Apache.REEF.Driver;
-using Org.Apache.REEF.Driver.Bridge;
 using Org.Apache.REEF.Driver.Evaluator;
 using Org.Apache.REEF.Tang.Annotations;
-using Org.Apache.REEF.Tang.Interface;
 using Org.Apache.REEF.Tang.Util;
+using Org.Apache.REEF.Utilities.Logging;
 
 namespace Org.Apache.REEF.Examples.HelloREEF
 {
     /// <summary>
     /// The Driver for HelloREEF: It requests a single Evaluator and then submits the HelloTask to it.
     /// </summary>
-    public sealed class HelloDriver : IObserver<IAllocatedEvaluator>, IObserver<IEvaluatorRequestor>, IStartHandler
+    public sealed class HelloDriver : IObserver<IAllocatedEvaluator>, IObserver<IDriverStarted>
     {
-        /// <summary>
-        /// Contexts contain configuration data used beyond a single task.
-        /// </summary>
-        private static readonly IConfiguration ContextConfiguration =
-            Driver.Context.ContextConfiguration.ConfigurationModule
-                .Set(Driver.Context.ContextConfiguration.Identifier, "HelloContext")
-                .Build();
-
-        /// <summary>
-        /// The TaskConfiguration contains the type of Task to run as well as the identifier of that task
-        /// </summary>
-        private static readonly IConfiguration TaskConfiguration = Common.Tasks.TaskConfiguration.ConfigurationModule
-            .Set(Common.Tasks.TaskConfiguration.Identifier, "HelloTask")
-            .Set(Common.Tasks.TaskConfiguration.Task, GenericType<HelloTask>.Class)
-            .Build();
-
-        private readonly REEFFileNames _fileNames;
+        private static readonly Logger _Logger = Logger.GetLogger(typeof(HelloDriver));
+        private readonly IEvaluatorRequestor _evaluatorRequestor;
 
         [Inject]
-        private HelloDriver(REEFFileNames fileNames)
+        private HelloDriver(IEvaluatorRequestor evaluatorRequestor)
         {
-            _fileNames = fileNames;
-            ClrHandlerHelper.GenerateClassHierarchy(GetGlobalAssemblies());
+            _evaluatorRequestor = evaluatorRequestor;
         }
 
         /// <summary>
@@ -67,7 +47,11 @@ namespace Org.Apache.REEF.Examples.HelloREEF
         /// <param name="allocatedEvaluator"></param>
         public void OnNext(IAllocatedEvaluator allocatedEvaluator)
         {
-            allocatedEvaluator.SubmitContextAndTask(ContextConfiguration, TaskConfiguration);
+            var taskConfiguration = TaskConfiguration.ConfigurationModule
+                .Set(TaskConfiguration.Identifier, "HelloTask")
+                .Set(TaskConfiguration.Task, GenericType<HelloTask>.Class)
+                .Build();
+            allocatedEvaluator.SubmitTask(taskConfiguration);
         }
 
         public void OnError(Exception error)
@@ -80,41 +64,13 @@ namespace Org.Apache.REEF.Examples.HelloREEF
         }
 
         /// <summary>
-        /// Ask for one Evaluator with 64MB of memory.
+        /// Called to start the user mode driver
         /// </summary>
-        /// <param name="evaluatorRequestor"></param>
-        public void OnNext(IEvaluatorRequestor evaluatorRequestor)
+        /// <param name="driverStarted"></param>
+        public void OnNext(IDriverStarted driverStarted)
         {
-            evaluatorRequestor.Submit(new EvaluatorRequest(number:1, megaBytes:64));
-        }
-
-        public string Identifier { get; set; }
-
-        /// <summary>
-        /// </summary>
-        /// <returns>All DLLs in the global folder</returns>
-        private ISet<string> GetGlobalAssemblies()
-        {
-            return new HashSet<string>(Directory.GetFiles(_fileNames.GetGlobalFolderPath())
-                .Where(e => !(string.IsNullOrWhiteSpace(e)))
-                .Select(Path.GetFullPath)
-                .Where(File.Exists)
-                .Where(IsBinary)
-                .Select(Path.GetFileNameWithoutExtension));
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="path"></param>
-        /// <returns>True, if the path refers to an EXE or DLL</returns>
-        private static Boolean IsBinary(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return false;
-            }
-            var extension = Path.GetExtension(path).ToLower();
-            return extension.EndsWith("dll") || extension.EndsWith("exe");
+            _Logger.Log(Level.Info, string.Format("HelloDriver started at {0}", driverStarted.StartTime));
+            _evaluatorRequestor.Submit(new EvaluatorRequest(1, 64));
         }
     }
 }

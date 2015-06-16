@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -22,10 +22,10 @@ import com.google.protobuf.ByteString;
 import org.apache.mesos.MesosSchedulerDriver;
 import org.apache.reef.proto.ReefServiceProtos;
 import org.apache.reef.proto.ReefServiceProtos.State;
-import org.apache.reef.runtime.common.driver.api.AbstractDriverRuntimeConfiguration;
 import org.apache.reef.runtime.common.driver.api.ResourceReleaseEvent;
 import org.apache.reef.runtime.common.driver.api.ResourceRequestEvent;
 import org.apache.reef.runtime.common.driver.api.ResourceRequestEventImpl;
+import org.apache.reef.runtime.common.driver.parameters.JobIdentifier;
 import org.apache.reef.runtime.common.driver.resourcemanager.NodeDescriptorEventImpl;
 import org.apache.reef.runtime.common.driver.resourcemanager.ResourceAllocationEvent;
 import org.apache.reef.runtime.common.driver.resourcemanager.ResourceAllocationEventImpl;
@@ -118,7 +118,7 @@ final class REEFScheduler implements Scheduler {
                 final REEFFileNames fileNames,
                 final EStage<SchedulerDriver> schedulerDriverEStage,
                 final ClasspathProvider classpath,
-                final @Parameter(AbstractDriverRuntimeConfiguration.JobIdentifier.class) String jobIdentifier,
+                final @Parameter(JobIdentifier.class) String jobIdentifier,
                 final @Parameter(MesosMasterIp.class) String masterIp) {
     this.mesosRemoteManager = mesosRemoteManager;
     this.reefEventHandlers = reefEventHandlers;
@@ -148,7 +148,7 @@ final class REEFScheduler implements Scheduler {
   }
 
   /**
-   * All offers in each batch of offers will be either be launched or declined
+   * All offers in each batch of offers will be either be launched or declined.
    */
   @Override
   public void resourceOffers(final SchedulerDriver driver, final List<Protos.Offer> offers) {

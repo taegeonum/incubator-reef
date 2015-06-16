@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -112,6 +112,10 @@ public final class RuntimeClock implements Clock {
   public final void close() {
     LOG.entering(RuntimeClock.class.getCanonicalName(), "close");
     synchronized (this.schedule) {
+      if (this.closed) {
+        LOG.log(Level.INFO, "Clock is already closed");
+        return;
+      }
       this.schedule.clear();
       this.schedule.add(new StopTime(findAcceptableStopTime()));
       this.schedule.notifyAll();
@@ -193,12 +197,13 @@ public final class RuntimeClock implements Clock {
       while (true) {
         LOG.log(Level.FINEST, "Entering clock main loop iteration.");
         try {
+          if (this.isIdle()) {
+            // Handle an idle clock event, without locking this.schedule
+            this.handlers.onNext(new IdleClock(timer.getCurrent()));
+          }
+
           Time time = null;
           synchronized (this.schedule) {
-            if (this.isIdle()) {
-              this.handlers.onNext(new IdleClock(timer.getCurrent()));
-            }
-
             while (this.schedule.isEmpty()) {
               this.schedule.wait();
             }

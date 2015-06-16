@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -135,7 +135,7 @@ public class ConstructorDefImpl<T> implements ConstructorDef<T> {
         }
       }
       // If not, then argument j from def is not in our list.  Return false.
-      if (found == false)
+      if (!found)
         return false;
     }
     // Everything in def's arg list is in ours.  Do we have at least one extra

@@ -19,76 +19,76 @@
 package org.apache.reef.io.network.temp.impl;
 
 import org.apache.reef.exception.evaluator.NetworkException;
-import org.apache.reef.io.network.temp.Connection;
-import org.apache.reef.io.network.temp.NetworkEvent;
-import org.apache.reef.wake.EventHandler;
+import org.apache.reef.io.network.Connection;
+import org.apache.reef.io.network.exception.NetworkRuntimeException;
 import org.apache.reef.wake.Identifier;
-import org.apache.reef.wake.remote.transport.LinkListener;
+import org.apache.reef.wake.remote.transport.Link;
 
-import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.List;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 /**
- * Created by kgw on 2015. 5. 31..
+ *
  */
-public final class NSConnection<T> implements Connection<T>, EventHandler<NetworkEvent<T>>, LinkListener<List<T>> {
+final class NSConnection<T> implements Connection<T> {
 
-  public NSConnection() {
+  private Link<NetworkEvent<T>> link;
 
+  private final Identifier remoteId;
+  private final AtomicBoolean closed;
+  private final NSConnectionFactory connFactory;
+
+  NSConnection(
+      final NSConnectionFactory connFactory,
+      final Identifier remoteId) {
+
+    this.connFactory = connFactory;
+    this.remoteId = remoteId;
+    this.closed = new AtomicBoolean();
   }
 
   @Override
   public void open() throws NetworkException {
-
+    link = connFactory.openLink(remoteId);
   }
 
   @Override
   public void write(List<T> messageList) {
+    final NetworkEvent<T> nsServiceEvent = new NetworkEvent<>(
+        connFactory.getClientServiceId(),
+        connFactory.getSrcId(),
+        remoteId,
+        messageList);
 
+    checkIsLinkOpened("write messages");
+    link.write(nsServiceEvent);
   }
 
   @Override
   public void write(T message) {
-
+    final List<T> messageList = new ArrayList<>(1);
+    messageList.add(message);
+    write(messageList);
   }
 
   @Override
-  public SocketAddress getLocalAddress() {
-    return null;
+  public void close() {
+    if (closed.compareAndSet(false, true)) {
+      link = null;
+      connFactory.removeConnection(remoteId);
+    }
   }
 
   @Override
-  public SocketAddress getRemoteAddress() {
-    return null;
+  public String toString() {
+    return "Connection from" + connFactory.getSrcId() + ":" + connFactory.getClientServiceId() + " to " +  remoteId + ":" + connFactory.getClientServiceId()
+        ;
   }
 
-  @Override
-  public Identifier getDestinationId() {
-    return null;
-  }
-
-  @Override
-  public Identifier getConnectionId() {
-    return null;
-  }
-
-  @Override
-  public void close() throws Exception {
-
-  }
-
-  @Override
-  public void onNext(NetworkEvent<T> value) {
-
-  }
-
-  @Override
-  public void onSuccess(List<T> message) {
-
-  }
-
-  @Override
-  public void onException(Throwable cause, SocketAddress remoteAddress, List<T> message) {
-
+  private void checkIsLinkOpened(String request) {
+    if (link == null) {
+      close();
+      throw new NetworkRuntimeException(this.toString() + " is not opened but " + request + " is requested");
+    }
   }
 }

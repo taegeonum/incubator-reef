@@ -1,4 +1,4 @@
-/*
+﻿/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,16 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.runtime.common.client;
 
-import org.apache.reef.tang.formats.ConfigurationModule;
-import org.apache.reef.tang.formats.ConfigurationModuleBuilder;
+using System;
+using Org.Apache.REEF.Tang.Annotations;
 
-/**
- * @deprecated this class was never used.
- */
-@Deprecated
-public class CommonClientConfigurationModule extends ConfigurationModuleBuilder {
-  public final static ConfigurationModule CONF = new CommonClientConfigurationModule()
-      .build();
+namespace Org.Apache.REEF.Driver.Defaults
+{
+    /// <summary>
+    /// Default event handler for driver start: Logging it.
+    /// </summary>
+    [Obsolete(
+        "Implement IObserver<DateTime> instead. Please see Jira REEF-336. Obsoleted v0.12 and will be removed v0.13",
+        false)]
+    public class DefaultObsoleteDriverStartHandler : IStartHandler
+    {
+        [Inject]
+        public DefaultObsoleteDriverStartHandler()
+        {
+            Identifier = "DefaultObsoleteDriverStartHandler";
+        }
+
+        public string Identifier { get; set; }
+    }
 }

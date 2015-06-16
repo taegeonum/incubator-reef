@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -18,14 +18,13 @@
  */
 package org.apache.reef.webserver;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.*;
 
 /**
- * Parsed HttpServletRequest
+ * Parsed HttpServletRequest.
  */
 public final class ParsedHttpRequest {
   private final String pathInfo;
@@ -42,11 +41,11 @@ public final class ParsedHttpRequest {
   private final Map<String, List<String>> queryPairs = new LinkedHashMap<>();
 
   /**
-   * parse HttpServletRequest
+   * parse HttpServletRequest.
    *
    * @param request
    * @throws IOException
-   * @throws ServletException
+   * @throws javax.servlet.ServletException
    */
   public ParsedHttpRequest(final HttpServletRequest request) throws IOException {
     this.pathInfo = request.getPathInfo() != null ? request.getPathInfo() : "";
@@ -55,7 +54,7 @@ public final class ParsedHttpRequest {
     this.requestUri = request.getRequestURI() != null ? request.getRequestURI() : "";
     this.requestUrl = request.getRequestURL().toString();
 
-    for (final Enumeration en = request.getHeaderNames(); en.hasMoreElements(); ) {
+    for (final Enumeration en = request.getHeaderNames(); en.hasMoreElements();) {
       final String headerName = en.nextElement().toString();
       this.headers.put(headerName, request.getHeader(headerName));
     }
@@ -94,7 +93,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get http header as a list of HeaderEntry
+   * get http header as a list of HeaderEntry.
    * @return
    */
   public List<HeaderEntry> getHeaderEntryList() {
@@ -114,7 +113,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get target to match specification like "Reef"
+   * get target to match specification like "Reef".
    *
    * @return specification
    */
@@ -132,7 +131,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get target target entity like "Evaluators"
+   * get target target entity like "Evaluators".
    *
    * @return
    */
@@ -141,7 +140,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get http request method like "Get"
+   * get http request method like "Get".
    *
    * @return
    */
@@ -150,7 +149,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get input Stream
+   * get input Stream.
    *
    * @return
    */
@@ -159,7 +158,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get request headers
+   * get request headers.
    *
    * @return
    */
@@ -168,7 +167,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get parsed queries
+   * get parsed queries.
    *
    * @return
    */
@@ -177,7 +176,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get URL like //http://localhost:8080/Reef/Evaluators/
+   * get URL like //http://localhost:8080/Reef/Evaluators/.
    *
    * @return
    */
@@ -186,7 +185,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get path infor, like /Reef/Evaluators/
+   * get path infor, like /Reef/Evaluators/.
    *
    * @return
    */
@@ -195,7 +194,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get URI, like /Reef/Evaluators/
+   * get URI, like /Reef/Evaluators/.
    *
    * @return
    */
@@ -204,7 +203,7 @@ public final class ParsedHttpRequest {
   }
 
   /**
-   * get version of the request for Rest API
+   * get version of the request for Rest API.
    *
    * @return
    */

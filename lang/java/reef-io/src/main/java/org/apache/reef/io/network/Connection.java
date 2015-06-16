@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -19,6 +19,8 @@
 package org.apache.reef.io.network;
 
 import org.apache.reef.exception.evaluator.NetworkException;
+
+import java.util.List;
 
 /**
  * Connection between two end-points named by identifiers.
@@ -41,6 +43,14 @@ public interface Connection<T> extends AutoCloseable {
    * @throws NetworkException
    */
   void write(T obj) throws NetworkException;
+
+  /**
+   * Writes objects to the connection.
+   *
+   * @param objs
+   * @throws NetworkException
+   */
+  void write(List<T> objs) throws NetworkException;
 
   /**
    * Closes the connection.

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -19,21 +19,20 @@
 package org.apache.reef.io.network.naming.serialization;
 
 import org.apache.reef.io.network.naming.avro.AvroNamingUnRegisterRequest;
-import org.apache.reef.io.network.naming.exception.NamingRuntimeException;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.Codec;
 
 import javax.inject.Inject;
 
 /**
- * Naming un-registration request codec
+ * Naming un-registration request codec.
  */
 public final class NamingUnregisterRequestCodec implements Codec<NamingUnregisterRequest> {
 
   private final IdentifierFactory factory;
 
   /**
-   * Constructs a naming un-registration request codec
+   * Constructs a naming un-registration request codec.
    *
    * @param factory the identifier factory
    */
@@ -43,7 +42,7 @@ public final class NamingUnregisterRequestCodec implements Codec<NamingUnregiste
   }
 
   /**
-   * Encodes the naming un-registration request to bytes
+   * Encodes the naming un-registration request to bytes.
    *
    * @param obj the naming un-registration request
    * @return a byte array
@@ -57,11 +56,11 @@ public final class NamingUnregisterRequestCodec implements Codec<NamingUnregiste
   }
 
   /**
-   * Decodes the bytes to a naming un-registration request
+   * Decodes the bytes to a naming un-registration request.
    *
    * @param buf the byte array
    * @return a naming un-registration request
-   * @throws NamingRuntimeException
+   * @throws org.apache.reef.io.network.naming.exception.NamingRuntimeException
    */
   @Override
   public NamingUnregisterRequest decode(byte[] buf) {

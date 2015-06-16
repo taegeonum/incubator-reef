@@ -20,33 +20,32 @@ package org.apache.reef.io.network.temp.impl;
 
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
-import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.Codec;
 import org.apache.reef.wake.remote.impl.TransportEvent;
 
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
 
 /**
- * Created by kgw on 2015. 5. 31..
+ *
  */
-class NetworkServiceReceiveHandler implements EventHandler<TransportEvent> {
+final class NetworkServiceReceiveHandler implements EventHandler<TransportEvent> {
 
-  private final ConcurrentMap<Identifier, NSConnectionPool> connectionPoolMap;
-  private final Codec<NetworkServiceEvent> nsEventCodec;
-  private final IdentifierFactory idFactory;
+  private final Map<Identifier, NSConnectionFactory> connectionFactoryMap;
+  private final Codec<NetworkEvent> nsEventCodec;
 
   NetworkServiceReceiveHandler(
-      final ConcurrentMap<Identifier, NSConnectionPool> connectionPoolMap,
-      final IdentifierFactory idFactory,
-      final Codec<NetworkServiceEvent> nsEventCodec) {
-    this.connectionPoolMap = connectionPoolMap;
+      final Map<Identifier, NSConnectionFactory> connectionFactoryMap,
+      final Codec<NetworkEvent> nsEventCodec) {
+    this.connectionFactoryMap = connectionFactoryMap;
     this.nsEventCodec = nsEventCodec;
-    this.idFactory = idFactory;
   }
 
   @Override
-  public void onNext(TransportEvent transportEvent) {
-    NetworkServiceEvent decodedEvent = nsEventCodec.decode(transportEvent.getData());
-
+  public void onNext(final TransportEvent transportEvent) {
+    final NetworkEvent decodedEvent = nsEventCodec.decode(transportEvent.getData());
+    decodedEvent.setRemoteAddress(transportEvent.getRemoteAddress());
+    final NSConnectionFactory connectionPool = connectionFactoryMap.get(decodedEvent.getClientId());
+    final EventHandler eventHandler = connectionPool.getEventHandler();
+    eventHandler.onNext(decodedEvent);
   }
 }

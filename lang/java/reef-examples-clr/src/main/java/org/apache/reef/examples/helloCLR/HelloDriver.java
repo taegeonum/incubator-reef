@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -23,10 +23,8 @@ import org.apache.reef.driver.evaluator.AllocatedEvaluator;
 import org.apache.reef.driver.evaluator.CLRProcessFactory;
 import org.apache.reef.driver.evaluator.EvaluatorRequest;
 import org.apache.reef.driver.evaluator.EvaluatorRequestor;
-import org.apache.reef.driver.evaluator.EvaluatorType;
 import org.apache.reef.driver.task.TaskConfiguration;
 import org.apache.reef.examples.hello.HelloTask;
-import org.apache.reef.driver.evaluator.CLRProcess;
 import org.apache.reef.tang.ClassHierarchy;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.ConfigurationBuilder;
@@ -46,7 +44,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The Driver code for the Hello REEF Application
+ * The Driver code for the Hello REEF Application.
  */
 @Unit
 public final class HelloDriver {
@@ -167,7 +165,7 @@ public final class HelloDriver {
   }
 
   /**
-   * Handles AllocatedEvaluator: Submit an empty context and the HelloTask
+   * Handles AllocatedEvaluator: Submit an empty context and the HelloTask.
    */
   final class EvaluatorAllocatedHandler implements EventHandler<AllocatedEvaluator> {
     @Override

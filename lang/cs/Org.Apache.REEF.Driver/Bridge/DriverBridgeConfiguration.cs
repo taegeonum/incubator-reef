@@ -37,13 +37,15 @@ using Org.Apache.REEF.Wake.Time.Event;
 
 namespace Org.Apache.REEF.Driver.Bridge
 {
+    [Obsolete(message:"Obsolete since 0.12, will be removed in 0,.13. Use DriverConfiguration instead.", error:false)]
     public class DriverBridgeConfiguration : ConfigurationModuleBuilder
     {
         /// <summary>
         ///  The event handler invoked right after the driver boots up. 
         /// </summary>
         [SuppressMessage("Microsoft.Security", "CA2104:Do not declare read only mutable reference types", Justification = "not applicable")]
-        public static readonly RequiredImpl<IStartHandler> OnDriverStarted = new RequiredImpl<IStartHandler>();
+        [Obsolete("Use OnDriverStart instead. Please see Jira REEF-336. Obsoleted v0.12 and will be removed v0.13", false)]
+        public static readonly OptionalImpl<IStartHandler> OnDriverStarted = new OptionalImpl<IStartHandler>();
 
         /// <summary>
         ///  The event handler invoked when driver restarts
@@ -54,6 +56,7 @@ namespace Org.Apache.REEF.Driver.Bridge
         /// <summary>
         /// The event handler for requesting evaluator
         /// </summary>
+        [Obsolete(@"Obsoleted at versioin 0.12 and will be removed at version 0.13. See https://issues.apache.org/jira/browse/REEF-168")]
         [SuppressMessage("Microsoft.Security", "CA2104:Do not declare read only mutable reference types", Justification = "not applicable")]
         public static readonly OptionalImpl<IObserver<IEvaluatorRequestor>> OnEvaluatorRequested = new OptionalImpl<IObserver<IEvaluatorRequestor>>();
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -22,7 +22,6 @@ import org.apache.reef.io.naming.NameAssignment;
 import org.apache.reef.io.network.naming.NameAssignmentTuple;
 import org.apache.reef.io.network.naming.avro.AvroNamingAssignment;
 import org.apache.reef.io.network.naming.avro.AvroNamingLookupResponse;
-import org.apache.reef.io.network.naming.exception.NamingRuntimeException;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.Codec;
 
@@ -32,14 +31,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Naming lookup response codec
+ * Naming lookup response codec.
  */
 public final class NamingLookupResponseCodec implements Codec<NamingLookupResponse> {
 
   private final IdentifierFactory factory;
 
   /**
-   * Constructs a naming lookup response codec
+   * Constructs a naming lookup response codec.
    *
    * @param factory the identifier factory
    */
@@ -49,7 +48,7 @@ public final class NamingLookupResponseCodec implements Codec<NamingLookupRespon
   }
 
   /**
-   * Encodes name assignments to bytes
+   * Encodes name assignments to bytes.
    *
    * @param obj the naming lookup response
    * @return a byte array
@@ -70,11 +69,11 @@ public final class NamingLookupResponseCodec implements Codec<NamingLookupRespon
   }
 
   /**
-   * Decodes bytes to an iterable of name assignments
+   * Decodes bytes to an iterable of name assignments.
    *
    * @param buf the byte array
    * @return a naming lookup response
-   * @throws NamingRuntimeException
+   * @throws org.apache.reef.io.network.naming.exception.NamingRuntimeException
    */
   @Override
   public NamingLookupResponse decode(final byte[] buf) {

@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -20,6 +20,7 @@
 package org.apache.reef.io.network.naming;
 
 import org.apache.reef.io.naming.NameAssignment;
+import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.Stage;
 
@@ -27,18 +28,19 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 /**
- * Naming server interface
+ * Naming server interface.
  */
+@DefaultImplementation(NameServerImpl.class)
 public interface NameServer extends Stage {
 
   /**
-   * get port number
+   * get port number.
    * @return
    */
   public int getPort();
 
   /**
-   * Registers an (identifier, address) mapping locally
+   * Registers an (identifier, address) mapping locally.
    *
    * @param id   an identifier
    * @param addr an Internet socket address
@@ -46,14 +48,14 @@ public interface NameServer extends Stage {
   public void register(final Identifier id, final InetSocketAddress addr);
 
   /**
-   * Unregisters an identifier locally
+   * Unregisters an identifier locally.
    *
    * @param id an identifier
    */
   public void unregister(final Identifier id);
 
   /**
-   * Finds an address for an identifier locally
+   * Finds an address for an identifier locally.
    *
    * @param id an identifier
    * @return an Internet socket address
@@ -61,7 +63,7 @@ public interface NameServer extends Stage {
   public InetSocketAddress lookup(final Identifier id);
 
   /**
-   * Finds addresses for identifiers locally
+   * Finds addresses for identifiers locally.
    *
    * @param identifiers an Iterable of identifiers
    * @return a list of name assignments

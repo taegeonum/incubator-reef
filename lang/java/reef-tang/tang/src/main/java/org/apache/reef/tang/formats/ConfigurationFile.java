@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -238,7 +238,7 @@ public class ConfigurationFile {
       l.add(e.getKey().getFullName() + '=' + escape(val));
 //      s.append(e.getKey().getFullName()).append('=').append(val).append("\n");
     }
-    return l;//s.toString();
+    return l; //s.toString();
   }
 
   private static StringBuilder join(final StringBuilder sb, final String sep, final ConstructorArg[] types) {

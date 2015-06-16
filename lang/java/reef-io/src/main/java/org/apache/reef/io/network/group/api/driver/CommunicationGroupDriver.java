@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -19,7 +19,6 @@
 package org.apache.reef.io.network.group.api.driver;
 
 import org.apache.reef.annotations.audience.DriverSide;
-import org.apache.reef.io.network.group.api.task.GroupCommClient;
 import org.apache.reef.io.network.group.impl.config.BroadcastOperatorSpec;
 import org.apache.reef.io.network.group.impl.config.ReduceOperatorSpec;
 import org.apache.reef.tang.Configuration;
@@ -35,7 +34,7 @@ import org.apache.reef.tang.annotations.Name;
 public interface CommunicationGroupDriver {
 
   /**
-   * Add the broadcast operator specified by the
+   * Add the broadcast operator specified by the.
    * 'spec' with name 'operatorName' into this
    * Communication Group
    *
@@ -46,7 +45,7 @@ public interface CommunicationGroupDriver {
   public CommunicationGroupDriver addBroadcast(Class<? extends Name<String>> operatorName, BroadcastOperatorSpec spec);
 
   /**
-   * Add the reduce operator specified by the
+   * Add the reduce operator specified by the.
    * 'spec' with name 'operatorName' into this
    * Communication Group
    *
@@ -57,7 +56,7 @@ public interface CommunicationGroupDriver {
   public CommunicationGroupDriver addReduce(Class<? extends Name<String>> operatorName, ReduceOperatorSpec spec);
 
   /**
-   * This signals to the service that no more
+   * This signals to the service that no more.
    * operator specs will be added to this communication
    * group and an attempt to do that will throw an
    * IllegalStateException
@@ -69,7 +68,7 @@ public interface CommunicationGroupDriver {
    * configuration passed in as 'taskConf' and makes the
    * current communication group and the operators configured
    * on it available on the Task side. Provides for injection
-   * of {@link GroupCommClient}
+   * of {@link org.apache.reef.io.network.group.api.task.GroupCommClient}
    *
    * @param taskConf
    * @return
