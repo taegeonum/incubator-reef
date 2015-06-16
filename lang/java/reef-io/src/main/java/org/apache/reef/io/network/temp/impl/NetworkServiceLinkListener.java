@@ -18,34 +18,38 @@
  */
 package org.apache.reef.io.network.temp.impl;
 
-import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
-import org.apache.reef.wake.remote.Codec;
-import org.apache.reef.wake.remote.impl.TransportEvent;
+import org.apache.reef.wake.remote.transport.LinkListener;
 
+import java.net.SocketAddress;
 import java.util.Map;
 
 /**
  *
  */
-final class NetworkServiceReceiveHandler implements EventHandler<TransportEvent> {
+final class NetworkServiceLinkListener implements LinkListener<NetworkEvent> {
 
   private final Map<Identifier, NSConnectionFactory> connectionFactoryMap;
-  private final Codec<NetworkEvent> nsEventCodec;
 
-  NetworkServiceReceiveHandler(
-      final Map<Identifier, NSConnectionFactory> connectionFactoryMap,
-      final Codec<NetworkEvent> nsEventCodec) {
+  NetworkServiceLinkListener(
+      final Map<Identifier, NSConnectionFactory> connectionFactoryMap) {
     this.connectionFactoryMap = connectionFactoryMap;
-    this.nsEventCodec = nsEventCodec;
   }
 
   @Override
-  public void onNext(final TransportEvent transportEvent) {
-    final NetworkEvent decodedEvent = nsEventCodec.decode(transportEvent.getData());
-    decodedEvent.setRemoteAddress(transportEvent.getRemoteAddress());
-    final NSConnectionFactory connectionPool = connectionFactoryMap.get(decodedEvent.getClientId());
-    final EventHandler eventHandler = connectionPool.getEventHandler();
-    eventHandler.onNext(decodedEvent);
+  public void onSuccess(NetworkEvent message) {
+    final LinkListener listener = connectionFactoryMap.get(message.getClientId()).getLinkListener();
+    if (listener != null) {
+      listener.onSuccess(message);
+    }
+
+  }
+
+  @Override
+  public void onException(Throwable cause, SocketAddress remoteAddress, NetworkEvent message) {
+    final LinkListener listener = connectionFactoryMap.get(message.getClientId()).getLinkListener();
+    if (listener != null) {
+      listener.onException(cause, remoteAddress, message);
+    }
   }
 }
