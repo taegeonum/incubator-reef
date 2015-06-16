@@ -76,7 +76,6 @@ public class NameLookupClient implements Stage, NamingLookup {
    * @param factory    an identifier factory
    * @param cache      an cache
    */
-  @Deprecated
   public NameLookupClient(final String serverAddr,
                           final int serverPort,
                           final IdentifierFactory factory,
@@ -132,7 +131,6 @@ public class NameLookupClient implements Stage, NamingLookup {
    * @param factory    an identifier factory
    * @param cache      an cache
    */
-  @Deprecated
   public NameLookupClient(final String serverAddr,
                           final int serverPort,
                           final long timeout,

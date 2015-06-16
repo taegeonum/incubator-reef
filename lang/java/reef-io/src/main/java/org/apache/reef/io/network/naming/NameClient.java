@@ -73,7 +73,6 @@ public class NameClient implements Stage, Naming {
    * @param factory    an identifier factory
    * @param cache      a cache
    */
-  @Deprecated
   public NameClient(final String serverAddr,
                     final int serverPort,
                     final IdentifierFactory factory,
@@ -110,9 +109,7 @@ public class NameClient implements Stage, Naming {
    * @param timeout    timeout in ms
    * @param factory    an identifier factory
    * @param cache      a cache
-   * @deprecated
    */
-  @Deprecated
   public NameClient(final String serverAddr,
                     final int serverPort,
                     final long timeout,
