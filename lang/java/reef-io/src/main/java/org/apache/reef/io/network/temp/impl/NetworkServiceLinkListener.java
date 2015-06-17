@@ -23,9 +23,7 @@ import org.apache.reef.wake.remote.transport.LinkListener;
 import java.net.SocketAddress;
 import java.util.Map;
 
-/**
- *
- */
+
 final class NetworkServiceLinkListener implements LinkListener<NetworkEvent> {
 
   private final Map<String, NSConnectionFactory> connectionFactoryMap;

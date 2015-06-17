@@ -28,6 +28,9 @@ import org.apache.reef.wake.remote.Codec;
 import org.apache.reef.wake.remote.transport.LinkListener;
 
 @DefaultImplementation(NetworkServiceDriverImpl.class)
+/*
+ * Network Service configuration helper in driver side
+ */
 public interface NetworkServiceDriver {
 
   public void setConnectionFactory(String contextId,
