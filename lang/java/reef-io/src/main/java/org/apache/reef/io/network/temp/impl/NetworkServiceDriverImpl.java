@@ -25,8 +25,6 @@ import org.apache.reef.driver.context.ServiceConfiguration;
 import org.apache.reef.io.network.impl.BindNSToTask;
 import org.apache.reef.io.network.impl.UnbindNSFromTask;
 import org.apache.reef.io.network.naming.NameServer;
-import org.apache.reef.io.network.naming.NameServerParameters;
-import org.apache.reef.io.network.temp.NameClientProxy;
 import org.apache.reef.io.network.temp.NetworkServiceDriver;
 import org.apache.reef.io.network.temp.NetworkServiceParameters;
 import org.apache.reef.tang.Configuration;
@@ -77,10 +75,12 @@ public final class NetworkServiceDriverImpl implements NetworkServiceDriver {
         .set(ServiceConfiguration.ON_TASK_STOP, UnbindNSFromTask.class)
         .build();
 
-    JavaConfigurationBuilder builder = Tang.Factory.getTang().newConfigurationBuilder(conf);
-    builder.bindImplementation(NameClientProxy.class, NameClientRemoteProxy.class);
-    builder.bindNamedParameter(NameServerParameters.NameServerPort.class, nameServer.getPort()+"");
-    builder.bindNamedParameter(NameServerParameters.NameServerAddr.class, localAddressProvider.getLocalAddress());
+    Configuration conf2 = NetworkServiceConfiguration.CONF
+        .set(NetworkServiceConfiguration.NAME_SERVICE_ADDRESS, localAddressProvider.getLocalAddress())
+        .set(NetworkServiceConfiguration.NAME_SERVICE_PORT, nameServer.getPort())
+        .build();
+
+    JavaConfigurationBuilder builder = Tang.Factory.getTang().newConfigurationBuilder(conf, conf2);
     serviceConfiguration = builder.build();
   }
 

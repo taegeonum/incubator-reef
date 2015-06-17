@@ -50,13 +50,13 @@ final class NetworkEventCodec implements Codec<NetworkEvent> {
 
     try (ByteArrayInputStream bais = new ByteArrayInputStream(data)) {
       try (DataInputStream dais = new DataInputStream(bais)) {
-        final String clientId = dais.readUTF();
+        final String connectionFactoryId = dais.readUTF();
         final Identifier srcId = factory.getNewInstance(dais.readUTF());
         final Identifier destId = factory.getNewInstance(dais.readUTF());
         final int size = dais.readInt();
         final List list = new ArrayList(size);
-        final boolean isStreamingCodec = isStreamingCodecMap.get(clientId);
-        final Codec codec = connectionFactoryMap.get(clientId).getCodec();
+        final boolean isStreamingCodec = isStreamingCodecMap.get(connectionFactoryId);
+        final Codec codec = connectionFactoryMap.get(connectionFactoryId).getCodec();
 
         if (isStreamingCodec) {
           for (int i = 0; i < size; i++) {
@@ -72,7 +72,7 @@ final class NetworkEventCodec implements Codec<NetworkEvent> {
         }
 
         return new NetworkEvent(
-            clientId,
+            connectionFactoryId,
             srcId,
             destId,
             list
@@ -85,12 +85,12 @@ final class NetworkEventCodec implements Codec<NetworkEvent> {
 
   @Override
   public byte[] encode(NetworkEvent obj) {
-    final Codec codec = connectionFactoryMap.get(obj.getClientId()).getCodec();
-    final Boolean isStreamingCodec = isStreamingCodecMap.get(obj.getClientId());
+    final Codec codec = connectionFactoryMap.get(obj.getConnectionFactoryId()).getCodec();
+    final Boolean isStreamingCodec = isStreamingCodecMap.get(obj.getConnectionFactoryId());
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       try (DataOutputStream daos = new DataOutputStream(baos)) {
-        daos.writeUTF(obj.getClientId());
+        daos.writeUTF(obj.getConnectionFactoryId());
         daos.writeUTF(obj.getSrcId().toString());
         daos.writeUTF(obj.getDestId().toString());
         daos.writeInt(obj.getData().size());

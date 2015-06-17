@@ -55,7 +55,7 @@ final class NSConnection<T> implements Connection<T> {
   @Override
   public void write(List<T> messageList) {
     final NetworkEvent<T> nsServiceEvent = new NetworkEvent<>(
-        connFactory.getClientServiceId(),
+        connFactory.getConnectionFactoryId(),
         connFactory.getSrcId(),
         remoteId,
         messageList);
@@ -81,7 +81,7 @@ final class NSConnection<T> implements Connection<T> {
 
   @Override
   public String toString() {
-    return "Connection from" + connFactory.getSrcId() + ":" + connFactory.getClientServiceId() + " to " +  remoteId + ":" + connFactory.getClientServiceId()
+    return "Connection from" + connFactory.getSrcId() + ":" + connFactory.getConnectionFactoryId() + " to " +  remoteId + ":" + connFactory.getConnectionFactoryId()
         ;
   }
 

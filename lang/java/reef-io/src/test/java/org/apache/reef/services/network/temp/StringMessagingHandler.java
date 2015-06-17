@@ -55,12 +55,12 @@ public final class StringMessagingHandler implements EventHandler<NetworkEvent<S
   @Override
   public void onNext(NetworkEvent<String> value) {
     count.incrementAndGet();
-    LOG.log(Level.INFO,
+    LOG.log(Level.FINE,
         "OUT: {0} received {1} from {2} to {3}",
         new Object[]{value, value.getSrcId(), value.getDestId()});
 
     for (final String obj : value.getData()) {
-      LOG.log(Level.INFO, "OUT: data: {0}", obj);
+      LOG.log(Level.FINE, "OUT: data: {0}", obj);
     }
 
     if (count.get() == expected) {

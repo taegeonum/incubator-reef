@@ -48,7 +48,7 @@ public final class NetworkServiceConfiguration extends ConfigurationModuleBuilde
   /**
    * Identifier factory for the name service.
    */
-  public static final RequiredParameter<IdentifierFactory> NAME_SERVER_IDENTIFIER_FACTORY = new RequiredParameter<>();
+  public static final OptionalParameter<IdentifierFactory> NAME_SERVER_IDENTIFIER_FACTORY = new OptionalParameter<>();
 
   /**
    * The port used by network service.
@@ -67,7 +67,7 @@ public final class NetworkServiceConfiguration extends ConfigurationModuleBuilde
   /**
    * Identifier factory for the network service.
    */
-  public static final RequiredParameter<IdentifierFactory> NETWORK_SERVICE_IDENDITIFER_FACTORY = new RequiredParameter<>();
+  public static final OptionalParameter<IdentifierFactory> NETWORK_SERVICE_IDENDITIFER_FACTORY = new OptionalParameter<>();
 
   public static final ConfigurationModule CONF = new NetworkServiceConfiguration()
       .bindNamedParameter(NameServerParameters.NameServerPort.class, NAME_SERVICE_PORT)

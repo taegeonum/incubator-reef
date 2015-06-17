@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class NSConnectionFactory<T> implements ConnectionFactory<T> {
 
   private final ConcurrentMap<Identifier, Connection<T>> connectionMap;
-  private final String clientName;
+  private final String connectionFactoryId;
   private final Codec<T> eventCodec;
   private final EventHandler<NetworkEvent<T>> eventHandler;
   private final LinkListener<NetworkEvent<T>> eventListener;
@@ -50,7 +50,7 @@ final class NSConnectionFactory<T> implements ConnectionFactory<T> {
 
   NSConnectionFactory(
       final DefaultNetworkServiceImpl networkService,
-      final String clientName,
+      final String connectionFactoryId,
       final Codec<T> eventCodec,
       final EventHandler<NetworkEvent<T>> eventHandler,
       final LinkListener<NetworkEvent<T>> eventListener) {
@@ -58,7 +58,7 @@ final class NSConnectionFactory<T> implements ConnectionFactory<T> {
     this.networkService = networkService;
     this.connectionMap = new ConcurrentHashMap<>();
     this.closed = new AtomicBoolean();
-    this.clientName = clientName;
+    this.connectionFactoryId = connectionFactoryId;
     this.eventCodec = eventCodec;
     this.eventHandler = eventHandler;
     this.eventListener = eventListener;
@@ -93,7 +93,7 @@ final class NSConnectionFactory<T> implements ConnectionFactory<T> {
     connectionMap.remove(remoteId);
   }
 
-  String getClientServiceId() { return this.clientName; }
+  String getConnectionFactoryId() { return this.connectionFactoryId; }
   Identifier getSrcId() { return this.networkService.getNetworkServiceId(); }
 
   EventHandler<NetworkEvent<T>> getEventHandler() {

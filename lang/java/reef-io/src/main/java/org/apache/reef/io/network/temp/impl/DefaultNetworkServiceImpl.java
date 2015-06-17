@@ -96,12 +96,12 @@ public final class DefaultNetworkServiceImpl implements NetworkService {
       Configuration conf  = confSerializer.fromString(confString);
       Injector injector = Tang.Factory.getTang().newInjector(conf);
 
-      String clientName = injector.getNamedInstance(NetworkServiceParameters.ConnectionFactoryId.class);
+      String connectionFactoryId = injector.getNamedInstance(NetworkServiceParameters.ConnectionFactoryId.class);
       Codec codec = findClassFromClassName(codecs, injector.getNamedInstance(NetworkServiceParameters.ConnectionFactoryCodecName.class));
       EventHandler handler = findClassFromClassName(eventHandlers, injector.getNamedInstance(NetworkServiceParameters.ConnectionFactoryHandlerName.class));
       LinkListener listener = findClassFromClassName(linkListeners, injector.getNamedInstance(NetworkServiceParameters.ConnectionFactoryListenerName.class));
-      connectionFactoryMap.put(clientName, new NSConnectionFactory(this, clientName, codec, handler, listener));
-      isStreamingCodecMap.put(clientName, codec instanceof StreamingCodec);
+      connectionFactoryMap.put(connectionFactoryId, new NSConnectionFactory(this, connectionFactoryId, codec, handler, listener));
+      isStreamingCodecMap.put(connectionFactoryId, codec instanceof StreamingCodec);
     }
   }
 

@@ -177,7 +177,7 @@ public class NetworkServiceTest {
       }
       long end = System.currentTimeMillis();
       double runtime = ((double) end - start) / 1000;
-      LOG.log(Level.FINEST, "size: " + size + "; messages/s: " + numMessages / runtime + " bandwidth(bytes/s): " + ((double) numMessages * 2 * size) / runtime);// x2 for unicode chars
+      LOG.log(Level.INFO, "size: " + size + "; messages/s: " + numMessages / runtime + " bandwidth(bytes/s): " + ((double) numMessages * 2 * size) / runtime);// x2 for unicode chars
       conn.close();
 
       ns1.close();
@@ -277,7 +277,7 @@ public class NetworkServiceTest {
     long end = System.currentTimeMillis();
 
     double runtime = ((double) end - start) / 1000;
-    LOG.log(Level.FINEST, "size: " + size + "; messages/s: " + totalNumMessages / runtime + " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime);// x2 for unicode chars
+    LOG.log(Level.INFO, "size: " + size + "; messages/s: " + totalNumMessages / runtime + " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime);// x2 for unicode chars
 
     server.close();
   }
@@ -358,7 +358,7 @@ public class NetworkServiceTest {
       long end = System.currentTimeMillis();
       double runtime = ((double) end - start) / 1000;
 
-      LOG.log(Level.FINEST, "size: " + size + "; messages/s: " + totalNumMessages / runtime + " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime);// x2 for unicode chars
+      LOG.log(Level.INFO, "size: " + size + "; messages/s: " + totalNumMessages / runtime + " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime);// x2 for unicode chars
       conn.close();
 
       ns1.close();
@@ -435,7 +435,7 @@ public class NetworkServiceTest {
       long end = System.currentTimeMillis();
       double runtime = ((double) end - start) / 1000;
       long numAppMessages = numMessages * batchSize / size;
-      LOG.log(Level.FINEST, "size: " + size + "; messages/s: " + numAppMessages / runtime + " bandwidth(bytes/s): " + ((double) numAppMessages * 2 * size) / runtime);// x2 for unicode chars
+      LOG.log(Level.INFO, "size: " + size + "; messages/s: " + numAppMessages / runtime + " bandwidth(bytes/s): " + ((double) numAppMessages * 2 * size) / runtime);// x2 for unicode chars
       conn.close();
 
       ns1.close();

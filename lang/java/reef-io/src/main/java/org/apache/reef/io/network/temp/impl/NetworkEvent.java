@@ -30,24 +30,24 @@ public final class NetworkEvent<T> {
 
   private final List<T> eventList;
   private SocketAddress remoteAddr;
-  private final String clientName;
+  private final String connectionFactoryId;
   private final Identifier srcId;
   private final Identifier remoteId;
 
   /**
    * Constructs a network event
    *
-   * @param clientName the client service identifier
+   * @param connectionFactoryId the connection factory identifier
    * @param srcId      the source identifier
    * @param remoteId   the remote identifier
    * @param eventList  the list of events
    */
   public NetworkEvent(
-      final String clientName,
+      final String connectionFactoryId,
       final Identifier srcId,
       final Identifier remoteId,
       final List<T> eventList) {
-    this.clientName = clientName;
+    this.connectionFactoryId = connectionFactoryId;
     this.srcId = srcId;
     this.remoteId = remoteId;
     this.eventList = eventList;
@@ -79,10 +79,10 @@ public final class NetworkEvent<T> {
   /**
    * Gets the connection identifier.
    *
-   * @return the client id
+   * @return the connection factory id
    */
-  public String getClientId() {
-    return clientName;
+  public String getConnectionFactoryId() {
+    return connectionFactoryId;
   }
 
 

@@ -43,7 +43,7 @@ final class NetworkServiceReceiveHandler implements EventHandler<TransportEvent>
   public void onNext(final TransportEvent transportEvent) {
     final NetworkEvent decodedEvent = nsEventCodec.decode(transportEvent.getData());
     decodedEvent.setRemoteAddress(transportEvent.getRemoteAddress());
-    final NSConnectionFactory connectionPool = connectionFactoryMap.get(decodedEvent.getClientId());
+    final NSConnectionFactory connectionPool = connectionFactoryMap.get(decodedEvent.getConnectionFactoryId());
     final EventHandler eventHandler = connectionPool.getEventHandler();
     eventHandler.onNext(decodedEvent);
   }

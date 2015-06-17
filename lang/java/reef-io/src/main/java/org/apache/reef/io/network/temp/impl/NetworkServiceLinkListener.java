@@ -37,7 +37,7 @@ final class NetworkServiceLinkListener implements LinkListener<NetworkEvent> {
 
   @Override
   public void onSuccess(NetworkEvent message) {
-    final LinkListener listener = connectionFactoryMap.get(message.getClientId()).getLinkListener();
+    final LinkListener listener = connectionFactoryMap.get(message.getConnectionFactoryId()).getLinkListener();
     if (listener != null) {
       listener.onSuccess(message);
     }
@@ -46,7 +46,7 @@ final class NetworkServiceLinkListener implements LinkListener<NetworkEvent> {
 
   @Override
   public void onException(Throwable cause, SocketAddress remoteAddress, NetworkEvent message) {
-    final LinkListener listener = connectionFactoryMap.get(message.getClientId()).getLinkListener();
+    final LinkListener listener = connectionFactoryMap.get(message.getConnectionFactoryId()).getLinkListener();
     if (listener != null) {
       listener.onException(cause, remoteAddress, message);
     }
