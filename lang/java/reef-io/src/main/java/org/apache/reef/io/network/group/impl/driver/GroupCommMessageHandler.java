@@ -24,6 +24,7 @@ import org.apache.reef.io.network.group.impl.utils.Utils;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.wake.EventHandler;
 
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -37,6 +38,11 @@ public class GroupCommMessageHandler implements EventHandler<GroupCommunicationM
 
   private final Map<Class<? extends Name<String>>, BroadcastingEventHandler<GroupCommunicationMessage>>
       commGroupMessageHandlers = new HashMap<>();
+
+  @Inject
+  public GroupCommMessageHandler() {
+
+  }
 
   public void addHandler(final Class<? extends Name<String>> groupName,
                          final BroadcastingEventHandler<GroupCommunicationMessage> handler) {

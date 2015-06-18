@@ -66,7 +66,6 @@ public class NameServerImpl implements NameServer {
    * @deprecated inject the NameServer instead of new it up
    * Constructs a name server
    */
-  // TODO: All existing NameServer usage is currently new-up, need to make them injected as well.
   @Deprecated
   @Inject
   public NameServerImpl(

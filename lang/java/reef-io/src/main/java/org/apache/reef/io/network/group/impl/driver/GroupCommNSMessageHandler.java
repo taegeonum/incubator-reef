@@ -18,39 +18,27 @@
  */
 package org.apache.reef.io.network.group.impl.driver;
 
+
+import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.group.impl.GroupCommunicationMessage;
+import org.apache.reef.io.network.group.impl.utils.Utils;
 import org.apache.reef.wake.EventHandler;
+import org.apache.reef.wake.impl.SingleThreadStage;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Logger;
 
-/**
- *
- */
-public class ExceptionHandler implements EventHandler<Exception> {
-  private static final Logger LOG = Logger.getLogger(ExceptionHandler.class.getName());
-  List<Exception> exceptions = new ArrayList<>();
+public final class GroupCommNSMessageHandler implements EventHandler<Message<GroupCommunicationMessage>> {
+
+  private final SingleThreadStage<GroupCommunicationMessage> groupCommMessageStage;
 
   @Inject
-  public ExceptionHandler() {
+  public GroupCommNSMessageHandler(final GroupCommMessageHandler groupCommMessageHandler) {
+    this.groupCommMessageStage = new SingleThreadStage<>("GroupCommMessageStage", groupCommMessageHandler, 100 * 1000);
+
   }
 
   @Override
-  public synchronized void onNext(final Exception ex) {
-    LOG.entering("ExceptionHandler", "onNext", new Object[]{ex});
-    exceptions.add(ex);
-    LOG.finest("Got an exception. Added it to list(" + exceptions.size() + ")");
-    LOG.exiting("ExceptionHandler", "onNext");
+  public void onNext(Message<GroupCommunicationMessage> msg) {
+    groupCommMessageStage.onNext(Utils.getGCM(msg));
   }
-
-  public synchronized boolean hasExceptions() {
-    LOG.entering("ExceptionHandler", "hasExceptions");
-    final boolean ret = !exceptions.isEmpty();
-    LOG.finest("There are " + exceptions.size() + " exceptions. Clearing now");
-    exceptions.clear();
-    LOG.exiting("ExceptionHandler", "hasExceptions", ret);
-    return ret;
-  }
-
 }

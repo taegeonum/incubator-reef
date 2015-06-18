@@ -175,13 +175,13 @@ public class BGDDriver {
       final Configuration serviceConf;
       if (!dataLoadingService.isDataLoadedContext(activeContext)) {
         communicationsGroupMasterContextId = contextId;
-        serviceConf = groupCommDriver.getServiceConfiguration();
+        serviceConf = groupCommDriver.getServiceConfiguration(contextId);
       } else {
         final Configuration parsedDataServiceConf = ServiceConfiguration.CONF
             .set(ServiceConfiguration.SERVICES, ExampleList.class)
             .build();
         serviceConf = Tang.Factory.getTang()
-            .newConfigurationBuilder(groupCommDriver.getServiceConfiguration(), parsedDataServiceConf)
+            .newConfigurationBuilder(groupCommDriver.getServiceConfiguration(contextId), parsedDataServiceConf)
             .bindImplementation(Parser.class, SVMLightParser.class)
             .build();
       }

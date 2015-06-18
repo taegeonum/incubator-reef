@@ -1,0 +1,70 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.reef.io.network.config;
+
+
+import org.apache.reef.io.network.config.parameters.ConnectionFactoryCodec;
+import org.apache.reef.io.network.config.parameters.ConnectionFactoryEventHandler;
+import org.apache.reef.io.network.config.parameters.ConnectionFactoryId;
+import org.apache.reef.io.network.config.parameters.ConnectionFactoryLinkListener;
+import org.apache.reef.tang.Configuration;
+import org.apache.reef.tang.JavaConfigurationBuilder;
+import org.apache.reef.tang.Tang;
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.wake.EventHandler;
+import org.apache.reef.wake.remote.Codec;
+import org.apache.reef.wake.remote.transport.LinkListener;
+
+final class ConnectionFactoryConfig {
+
+  public final String contextId;
+  public final Class<? extends Name<String>> connectionFactoryId;
+  public final Class<? extends Codec<?>> codec;
+  public final Class<? extends EventHandler<?>> eventHandler;
+  public final Class<? extends LinkListener<?>> linkListener;
+
+  /**
+   * ConnectionFactory configuration wrapper.
+   * @param contextId
+   * @param connectionFactoryId
+   * @param codec
+   * @param eventHandler
+   * @param linkListener
+   */
+  public ConnectionFactoryConfig(final String contextId,
+                                 final Class<? extends Name<String>> connectionFactoryId,
+                                 final Class<? extends Codec<?>> codec,
+                                 final Class<? extends EventHandler<?>> eventHandler,
+                                 final Class<? extends LinkListener<?>> linkListener) {
+    this.contextId = contextId;
+    this.connectionFactoryId = connectionFactoryId;
+    this.codec = codec;
+    this.eventHandler = eventHandler;
+    this.linkListener = linkListener;
+  }
+
+  public Configuration getConfiguration() {
+    JavaConfigurationBuilder builder = Tang.Factory.getTang().newConfigurationBuilder();
+    builder.bindNamedParameter(ConnectionFactoryCodec.class, codec.getName());
+    builder.bindNamedParameter(ConnectionFactoryEventHandler.class, eventHandler.getName());
+    builder.bindNamedParameter(ConnectionFactoryId.class, connectionFactoryId.toString());
+    builder.bindNamedParameter(ConnectionFactoryLinkListener.class, linkListener.getName());
+    return builder.build();
+  }
+}

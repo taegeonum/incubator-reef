@@ -126,7 +126,6 @@ public class BroadcastREEF {
         .build();
 
     final Configuration groupCommServConfiguration = GroupCommService.getConfiguration();
-
     final Configuration mergedDriverConfiguration = Tang.Factory.getTang()
         .newConfigurationBuilder(groupCommServConfiguration, driverConfiguration)
         .bindNamedParameter(ModelDimensions.class, Integer.toString(dimensions))
