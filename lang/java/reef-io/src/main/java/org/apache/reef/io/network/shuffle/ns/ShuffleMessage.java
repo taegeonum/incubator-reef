@@ -21,24 +21,21 @@ package org.apache.reef.io.network.shuffle.ns;
 /**
  *
  */
-public final class ShuffleMessage {
+public abstract class ShuffleMessage {
 
-  public static final int TUPLE = 0;
+  public static final int TUPLE_MESSAGE = 0;
 
   private final int code;
   private final String topologyName;
   private final String groupingName;
-  private final byte[][] data;
 
   public ShuffleMessage(
       final int code,
       final String topologyName,
-      final String groupingName,
-      final byte[][] data) {
+      final String groupingName) {
     this.code = code;
     this.topologyName = topologyName;
     this.groupingName = groupingName;
-    this.data = data;
   }
 
   public int getCode() {
@@ -53,15 +50,7 @@ public final class ShuffleMessage {
     return groupingName;
   }
 
-  public int getDataLength() {
-    if (data == null) {
-      return 0;
-    }
+  public abstract int getDataLength();
 
-    return data.length;
-  }
-
-  public byte[] getDataAt(final int index) {
-    return data[index];
-  }
+  public abstract Object getDataAt(final int index);
 }

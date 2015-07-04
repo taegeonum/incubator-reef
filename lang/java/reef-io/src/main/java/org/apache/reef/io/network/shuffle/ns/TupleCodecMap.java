@@ -18,16 +18,18 @@
  */
 package org.apache.reef.io.network.shuffle.ns;
 
-import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.task.ShuffleTopologyClient;
+import org.apache.reef.io.network.shuffle.task.Tuple;
 import org.apache.reef.tang.annotations.DefaultImplementation;
-import org.apache.reef.tang.annotations.Name;
-import org.apache.reef.wake.remote.transport.LinkListener;
+import org.apache.reef.wake.remote.Codec;
 
 /**
  *
  */
-@DefaultImplementation(ShuffleLinkListenerImpl.class)
-public interface ShuffleLinkListener extends LinkListener<Message<ShuffleMessage>> {
-  void registerLinkListener(Class<? extends Name<String>> topologyName,
-                            LinkListener<Message<ShuffleMessage>> linkListener);
+@DefaultImplementation(TupleCodecMapImpl.class)
+public interface TupleCodecMap {
+
+  Codec<Tuple> getTupleCodec(String topologyName, String groupingName);
+
+  public void registerTupleCodecs(ShuffleTopologyClient client);
 }

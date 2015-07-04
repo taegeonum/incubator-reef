@@ -23,9 +23,13 @@ import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.evaluator.context.parameters.ContextStartHandlers;
 import org.apache.reef.evaluator.context.parameters.ContextStopHandlers;
-import org.apache.reef.io.network.shuffle.ns.ShuffleLinkListener;
-import org.apache.reef.io.network.shuffle.ns.ShuffleMessageHandler;
+import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.NetworkService;
+import org.apache.reef.io.network.shuffle.ns.ShuffleControlLinkListener;
+import org.apache.reef.io.network.shuffle.ns.ShuffleControlMessageCodec;
+import org.apache.reef.io.network.shuffle.ns.ShuffleControlMessageHandler;
 import org.apache.reef.io.network.shuffle.params.SerializedTopologySet;
+import org.apache.reef.io.network.shuffle.params.ShuffleControlMessageNSId;
 import org.apache.reef.io.network.shuffle.task.ShuffleContextStartHandler;
 import org.apache.reef.io.network.shuffle.task.ShuffleContextStopHandler;
 import org.apache.reef.io.network.shuffle.topology.TopologyDescription;
@@ -48,21 +52,29 @@ final class ShuffleDriverImpl implements ShuffleDriver {
 
   private final Injector injector;
   private final ConfigurationSerializer confSerializer;
-  private final ShuffleLinkListener linkListener;
-  private final ShuffleMessageHandler messageHandler;
+  private final ShuffleControlLinkListener linkListener;
+  private final ShuffleControlMessageHandler messageHandler;
   private final ConcurrentMap<Class<? extends Name>, ShuffleTopologyManager> topologyManagerMap;
 
   @Inject
   public ShuffleDriverImpl(
       final Injector injector,
       final ConfigurationSerializer confSerializer,
-      final ShuffleLinkListener linkListener,
-      final ShuffleMessageHandler messageHandler) {
+      final NetworkService networkService,
+      final ShuffleControlMessageCodec messageCodec,
+      final ShuffleControlLinkListener linkListener,
+      final ShuffleControlMessageHandler messageHandler) {
     this.injector = injector;
     this.confSerializer = confSerializer;
     this.linkListener = linkListener;
     this.messageHandler = messageHandler;
     this.topologyManagerMap = new ConcurrentHashMap<>();
+
+    try {
+      networkService.registerConnectionFactory(ShuffleControlMessageNSId.class, messageCodec, messageHandler, linkListener);
+    } catch (NetworkException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -82,8 +94,8 @@ final class ShuffleDriverImpl implements ShuffleDriver {
         throw new RuntimeException(topologyDescription.getTopologyName() + " was already submitted.");
       }
 
-      linkListener.registerLinkListener(manager.getTopologyName(), manager.getLinkListener());
-      messageHandler.registerMessageHandler(manager.getTopologyName(), manager.getMessageHandler());
+      linkListener.registerLinkListener(manager.getTopologyName(), manager.getControlLinkListener());
+      messageHandler.registerMessageHandler(manager.getTopologyName(), manager.getControlMessageHandler());
       return manager;
     } catch(final InjectionException exception) {
       throw new RuntimeException("An Injection error occurred while submitting topology "

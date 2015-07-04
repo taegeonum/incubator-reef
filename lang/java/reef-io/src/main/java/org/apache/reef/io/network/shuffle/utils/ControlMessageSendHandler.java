@@ -16,48 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.shuffle.driver;
+package org.apache.reef.io.network.shuffle.utils;
 
 import org.apache.reef.exception.evaluator.NetworkException;
+import org.apache.reef.io.network.Connection;
 import org.apache.reef.io.network.NetworkService;
 import org.apache.reef.io.network.naming.NameServerParameters;
-import org.apache.reef.io.network.shuffle.ns.*;
+import org.apache.reef.io.network.shuffle.driver.ShuffleDriverConfiguration;
+import org.apache.reef.io.network.shuffle.ns.ShuffleControlMessage;
 import org.apache.reef.io.network.shuffle.params.ShuffleControlMessageNSId;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.IdentifierFactory;
-import org.apache.reef.wake.time.event.StartTime;
 
 import javax.inject.Inject;
 
 /**
  *
  */
-final class ShuffleDriverStartHandler implements EventHandler<StartTime> {
+public class ControlMessageSendHandler implements EventHandler<ShuffleControlMessage> {
 
-  private final NetworkService networkService;
-  private final IdentifierFactory idFactory;
-  private final ShuffleControlMessageCodec codec;
-  private final ShuffleControlMessageHandler handler;
-  private final ShuffleControlLinkListener linkListener;
+  private Connection<ShuffleControlMessage> connection;
 
   @Inject
-  public ShuffleDriverStartHandler(
+  private ControlMessageSendHandler(
       final NetworkService networkService,
-      final ShuffleControlMessageCodec codec,
-      final ShuffleControlMessageHandler handler,
-      final ShuffleControlLinkListener linkListener,
       final @Parameter(NameServerParameters.NameServerIdentifierFactory.class) IdentifierFactory idFactory) {
-    this.networkService = networkService;
-    this.codec = codec;
-    this.handler = handler;
-    this.linkListener = linkListener;
-    this.idFactory = idFactory;
+    this.connection = networkService.<ShuffleControlMessage>getConnectionFactory(ShuffleControlMessageNSId.class)
+        .newConnection(idFactory.getNewInstance(ShuffleDriverConfiguration.SHUFFLE_DRIVER_IDENTIFIER));
+    try {
+      this.connection.open();
+    } catch (final NetworkException e) {
+      throw new RuntimeException("Failed to connect with driver.", e);
+    }
   }
 
   @Override
-  public void onNext(final StartTime value) {
-    // TODO : It should be removed by including an API setting driver network service id through NetworkService driverConfiguration.
-    networkService.registerId(idFactory.getNewInstance(ShuffleDriverConfiguration.SHUFFLE_DRIVER_IDENTIFIER));
+  public void onNext(final ShuffleControlMessage value) {
+    try {
+      connection.write(value);
+    } catch (NetworkException e) {
+      // unnecessary try-catch clauses.
+    }
   }
 }

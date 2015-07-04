@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.shuffle.impl;
+package org.apache.reef.io.network.shuffle.ns;
 
+import org.apache.reef.io.network.Message;
+import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.tang.annotations.Name;
-import org.apache.reef.tang.annotations.NamedParameter;
-
-import java.util.Set;
+import org.apache.reef.wake.remote.transport.LinkListener;
 
 /**
  *
  */
-@NamedParameter
-final class SerializedGroupingSet implements Name<Set<String>> {
+@DefaultImplementation(ShuffleTupleLinkListenerImpl.class)
+public interface ShuffleTupleLinkListener extends LinkListener<Message<ShuffleTupleMessage>> {
+  void registerLinkListener(Class<? extends Name<String>> topologyName,
+                            LinkListener<Message<ShuffleTupleMessage>> linkListener);
 }

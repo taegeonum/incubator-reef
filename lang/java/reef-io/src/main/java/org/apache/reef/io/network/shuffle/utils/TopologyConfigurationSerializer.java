@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.shuffle.impl;
+package org.apache.reef.io.network.shuffle.utils;
 
-import org.apache.reef.io.network.shuffle.params.ShuffleTopologyName;
+import org.apache.reef.io.network.shuffle.params.*;
 import org.apache.reef.io.network.shuffle.task.ShuffleTopologyClient;
 import org.apache.reef.io.network.shuffle.topology.GroupingDescription;
 import org.apache.reef.io.network.shuffle.topology.NodePoolDescription;
@@ -35,7 +35,7 @@ import java.util.Map;
 /**
  *
  */
-final class TopologyConfigurationSerializer {
+public final class TopologyConfigurationSerializer {
 
   private final String taskId;
   private final TopologyDescription topologyDescription;
@@ -45,7 +45,7 @@ final class TopologyConfigurationSerializer {
   private final ConfigurationSerializer confSerializer;
   private final JavaConfigurationBuilder confBuilder;
 
-  TopologyConfigurationSerializer(
+  public TopologyConfigurationSerializer(
       final String taskId,
       final TopologyDescription topologyDescription,
       final ConfigurationSerializer confSerializer) {
@@ -67,7 +67,7 @@ final class TopologyConfigurationSerializer {
     }
   }
 
-  Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     if (nodePoolDescriptionListHasTask.size() == 0) {
       return null;
     }

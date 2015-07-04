@@ -18,7 +18,7 @@
  */
 package org.apache.reef.io.network.shuffle.task;
 
-import org.apache.reef.io.network.shuffle.ns.ShuffleMessage;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 
 import java.util.List;
@@ -29,9 +29,9 @@ import java.util.List;
 @DefaultImplementation(ShuffleTupleSerializerImpl.class)
 public interface ShuffleTupleSerializer<K, V> {
 
-  List<Tuple<String, ShuffleMessage>> serializeTuple(Tuple<K, V> tuple);
+  List<Tuple<String, ShuffleTupleMessage>> serializeTuple(Tuple<K, V> tuple);
 
-  List<Tuple<String, ShuffleMessage>> serializeTuple(K key, List<V> valueList);
+  List<Tuple<String, ShuffleTupleMessage>> serializeTuple(K key, List<V> valueList);
 
-  List<Tuple<String, ShuffleMessage>> serializeTupleList(List<Tuple<K, V>> tupleList);
+  List<Tuple<String, ShuffleTupleMessage>> serializeTupleList(List<Tuple<K, V>> tupleList);
 }

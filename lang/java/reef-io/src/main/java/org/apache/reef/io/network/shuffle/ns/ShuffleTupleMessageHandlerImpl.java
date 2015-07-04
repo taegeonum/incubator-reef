@@ -19,15 +19,34 @@
 package org.apache.reef.io.network.shuffle.ns;
 
 import org.apache.reef.io.network.Message;
-import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.wake.EventHandler;
+
+import javax.inject.Inject;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
  */
-@DefaultImplementation(ShuffleMessageHandlerImpl.class)
-public interface ShuffleMessageHandler extends EventHandler<Message<ShuffleMessage>> {
-  void registerMessageHandler(Class<? extends Name<String>> topologyName,
-                              EventHandler<Message<ShuffleMessage>> eventHandler);
+final class ShuffleTupleMessageHandlerImpl implements ShuffleTupleMessageHandler {
+
+  private final Map<String, EventHandler<Message<ShuffleTupleMessage>>> eventHandlerMap;
+
+  @Inject
+  public ShuffleTupleMessageHandlerImpl() {
+    eventHandlerMap = new HashMap<>();
+  }
+
+  @Override
+  public void onNext(final Message<ShuffleTupleMessage> message) {
+    final String topologyName = message.getData().iterator().next().getTopologyName();
+    eventHandlerMap.get(topologyName).onNext(message);
+  }
+
+  @Override
+  public void registerMessageHandler(final Class<? extends Name<String>> topologyName,
+                                     final EventHandler<Message<ShuffleTupleMessage>> eventHandler) {
+    eventHandlerMap.put(topologyName.getName(), eventHandler);
+  }
 }

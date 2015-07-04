@@ -22,5 +22,5 @@ package org.apache.reef.io.network.shuffle.impl;
  *
  */
 public final class ImmutableShuffleMessageCode {
-  public static final int TEST = 1;
+  public static final int TOPOLOGY_SETUP = 1;
 }

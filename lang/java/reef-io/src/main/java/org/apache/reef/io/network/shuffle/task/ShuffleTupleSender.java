@@ -19,6 +19,7 @@
 package org.apache.reef.io.network.shuffle.task;
 
 import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.wake.remote.transport.LinkListener;
 
@@ -27,7 +28,7 @@ import java.util.List;
 /**
  *
  */
-@DefaultImplementation(BaseShuffleTupleSender.class)
+@DefaultImplementation(BaseTupleSender.class)
 public interface ShuffleTupleSender<K, V> extends ShuffleTupleOperator<K, V> {
 
   int sendTuple(Tuple<K, V> tuple);
@@ -36,6 +37,6 @@ public interface ShuffleTupleSender<K, V> extends ShuffleTupleOperator<K, V> {
 
   int sendTuple(K key, List<V> valueList);
 
-  void registerLinkListener(LinkListener<Message<Tuple<K, V>>> linkListener);
+  void registerLinkListener(LinkListener<Message<ShuffleTupleMessage<K, V>>> linkListener);
 
 }

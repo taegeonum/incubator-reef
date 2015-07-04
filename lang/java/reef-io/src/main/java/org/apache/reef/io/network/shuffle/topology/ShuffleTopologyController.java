@@ -19,6 +19,7 @@
 package org.apache.reef.io.network.shuffle.topology;
 
 import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.ns.ShuffleControlMessage;
 import org.apache.reef.io.network.shuffle.ns.ShuffleMessage;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.wake.EventHandler;
@@ -31,7 +32,7 @@ public interface ShuffleTopologyController {
 
   Class<? extends Name<String>> getTopologyName();
 
-  EventHandler<Message<ShuffleMessage>> getMessageHandler();
+  EventHandler<Message<ShuffleControlMessage>> getControlMessageHandler();
 
-  LinkListener<Message<ShuffleMessage>> getLinkListener();
+  LinkListener<Message<ShuffleControlMessage>> getControlLinkListener();
 }

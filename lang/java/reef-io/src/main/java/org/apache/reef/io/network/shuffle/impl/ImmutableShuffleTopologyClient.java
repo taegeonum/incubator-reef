@@ -21,8 +21,11 @@ package org.apache.reef.io.network.shuffle.impl;
 import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.Message;
 import org.apache.reef.io.network.NetworkService;
+import org.apache.reef.io.network.impl.StreamingCodec;
 import org.apache.reef.io.network.shuffle.grouping.Grouping;
+import org.apache.reef.io.network.shuffle.ns.ShuffleControlMessage;
 import org.apache.reef.io.network.shuffle.ns.ShuffleMessage;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.io.network.shuffle.params.*;
 import org.apache.reef.io.network.shuffle.task.*;
 import org.apache.reef.io.network.shuffle.task.Tuple;
@@ -30,7 +33,6 @@ import org.apache.reef.io.network.shuffle.topology.GroupingDescription;
 import org.apache.reef.io.network.shuffle.topology.NodePoolDescription;
 import org.apache.reef.io.network.shuffle.utils.BroadcastEventHandler;
 import org.apache.reef.io.network.shuffle.utils.BroadcastLinkListener;
-import org.apache.reef.io.network.shuffle.utils.SimpleNetworkMessage;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.Tang;
@@ -39,7 +41,6 @@ import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.ConfigurationSerializer;
 import org.apache.reef.wake.EventHandler;
-import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.remote.Codec;
 import org.apache.reef.wake.remote.transport.LinkListener;
 
@@ -52,22 +53,26 @@ import java.util.*;
  */
 public final class ImmutableShuffleTopologyClient implements ShuffleTopologyClient {
 
+  private boolean isTopologySetup;
+
   private final Class<? extends Name<String>> topologyName;
-  private final EventHandler<Message<ShuffleMessage>> shuffleMessageHandler;
-  private final LinkListener<Message<ShuffleMessage>> shuffleLinkListener;
+  private final EventHandler<Message<ShuffleTupleMessage>> tupleMessageHandler;
+  private final LinkListener<Message<ShuffleTupleMessage>> tupleLinkListener;
+  private final EventHandler<Message<ShuffleControlMessage>> controlMessageHandler;
+  private final LinkListener<Message<ShuffleControlMessage>> controlLinkListener;
   private final Map<String, GroupingDescription> groupingDescriptionMap;
   private final Map<String, NodePoolDescription> nodePoolDescriptionMap;
   private final Map<String, NodePoolDescription> senderPoolDescriptionMap;
   private final Map<String, NodePoolDescription> receiverPoolDescriptionMap;
 
-  private final Map<String, Codec<Tuple>> tupleCodecMap;
+  private final Map<String, StreamingCodec<Tuple>> tupleCodecMap;
   private final Map<String, ShuffleTupleReceiver> receiverMap;
   private final Map<String, ShuffleTupleSender> senderMap;
 
-  private final Map<String, BroadcastEventHandler<Message<Tuple>>> messageHandlerMap;
-  private final Map<String, BroadcastLinkListener<Message<Tuple>>> linkListenerMap;
+  private final Map<String, BroadcastEventHandler<Message<ShuffleTupleMessage>>> messageHandlerMap;
+  private final Map<String, BroadcastLinkListener<Message<ShuffleTupleMessage>>> linkListenerMap;
 
-  private final ConnectionFactory<ShuffleMessage> connFactory;
+  private final ConnectionFactory<ShuffleTupleMessage> connFactory;
   private final Injector injector;
   private final ConfigurationSerializer confSerializer;
 
@@ -87,10 +92,8 @@ public final class ImmutableShuffleTopologyClient implements ShuffleTopologyClie
     } catch (final ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
-
-    this.shuffleMessageHandler = new ShuffleMessageHandler();
-    this.shuffleLinkListener = new ShuffleLinkListener();
-    this.connFactory = networkService.getConnectionFactory(ShuffleNetworkServiceId.class);
+    this.isTopologySetup = false;
+    this.connFactory = networkService.getConnectionFactory(ShuffleTupleMessageNSId.class);
     this.injector = injector;
     this.confSerializer = confSerializer;
     this.groupingDescriptionMap = new HashMap<>();
@@ -100,6 +103,11 @@ public final class ImmutableShuffleTopologyClient implements ShuffleTopologyClie
     this.receiverPoolDescriptionMap = new HashMap<>();
     this.senderMap = new HashMap<>();
     this.receiverMap = new HashMap<>();
+
+    this.tupleMessageHandler = new TupleMessageHandler();
+    this.tupleLinkListener = new TupleLinkListener();
+    this.controlMessageHandler = new ControlMessageHandler();
+    this.controlLinkListener = new ControlLinkListener();
 
     this.messageHandlerMap = new HashMap<>();
     this.linkListenerMap = new HashMap<>();
@@ -139,22 +147,25 @@ public final class ImmutableShuffleTopologyClient implements ShuffleTopologyClie
 
   private void createOperators() {
     for (final GroupingDescription groupingDescription : groupingDescriptionMap.values()) {
-      final Configuration codecConfiguration = Tang.Factory.getTang().newConfigurationBuilder()
-          .bindNamedParameter(ShuffleKeyCodec.class, groupingDescription.getKeyCodec())
-          .bindNamedParameter(ShuffleValueCodec.class, groupingDescription.getValueCodec())
-          .build();
-
-      try {
-        tupleCodecMap.put(
-            groupingDescription.getGroupingName(),
-            Tang.Factory.getTang().newInjector(codecConfiguration)
-                .getInstance(TupleCodec.class)
-        );
-      } catch (InjectionException e) {
-        throw new RuntimeException("An InjectionException occurred while injecting tuple codec with " + groupingDescription, e);
-      }
-
+      createTupleCodec(groupingDescription);
       createOperatorsWith(groupingDescription);
+    }
+  }
+
+  private void createTupleCodec(GroupingDescription groupingDescription) {
+    final Configuration codecConfiguration = Tang.Factory.getTang().newConfigurationBuilder()
+        .bindNamedParameter(ShuffleKeyCodec.class, groupingDescription.getKeyCodec())
+        .bindNamedParameter(ShuffleValueCodec.class, groupingDescription.getValueCodec())
+        .build();
+
+    try {
+      tupleCodecMap.put(
+          groupingDescription.getGroupingName(),
+          Tang.Factory.getTang().newInjector(codecConfiguration)
+              .getInstance(TupleCodec.class)
+      );
+    } catch (InjectionException e) {
+      throw new RuntimeException("An InjectionException occurred while injecting tuple codec with " + groupingDescription, e);
     }
   }
 
@@ -207,14 +218,68 @@ public final class ImmutableShuffleTopologyClient implements ShuffleTopologyClie
   }
 
   @Override
-  public EventHandler<Message<ShuffleMessage>> getMessageHandler() {
-    return shuffleMessageHandler;
+  public EventHandler<Message<ShuffleControlMessage>> getControlMessageHandler() {
+    return controlMessageHandler;
   }
 
   @Override
-  public LinkListener<Message<ShuffleMessage>> getLinkListener() {
-    return shuffleLinkListener;
+  public LinkListener<Message<ShuffleControlMessage>> getControlLinkListener() {
+    return controlLinkListener;
   }
+
+  @Override
+  public boolean waitForTopologySetup() {
+    synchronized(this) {
+      if (!isTopologySetup) {
+        try {
+          while (!isTopologySetup) {
+            this.wait();
+          }
+        } catch (final InterruptedException e) {
+          throw new RuntimeException("An InterruptedException occurred while waiting for topology set up", e);
+        }
+
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public EventHandler<Message<ShuffleTupleMessage>> getTupleMessageHandler() {
+    return tupleMessageHandler;
+  }
+
+  @Override
+  public LinkListener<Message<ShuffleTupleMessage>> getTupleLinkListener() {
+    return tupleLinkListener;
+  }
+
+  @Override
+  public Codec<Tuple> getTupleCodec(String groupingName) {
+    return tupleCodecMap.get(groupingName);
+  }
+
+  @Override
+  public Map<String, GroupingDescription> getGroupingDescriptionMap() {
+    return groupingDescriptionMap;
+  }
+
+  @Override
+  public Map<String, NodePoolDescription> getNodePoolDescriptionMap() {
+    return nodePoolDescriptionMap;
+  }
+
+  @Override
+  public Map<String, NodePoolDescription> getSenderPoolDescriptionMap() {
+    return senderPoolDescriptionMap;
+  }
+
+  @Override
+  public Map<String, NodePoolDescription> getReceiverPoolDescriptionMap() {
+    return receiverPoolDescriptionMap;
+  }
+
 
   @Override
   public <K, V> ShuffleTupleReceiver<K, V> getReceiver(final String groupingName) {
@@ -235,71 +300,61 @@ public final class ImmutableShuffleTopologyClient implements ShuffleTopologyClie
   }
 
   @Override
-  public <K, V> void registerLinkListener(final String groupingName, final LinkListener<Message<Tuple<K, V>>> linkListener) {
+  public <K, V> void registerLinkListener(final String groupingName, final LinkListener<Message<ShuffleTupleMessage<K, V>>> linkListener) {
     linkListenerMap.get(groupingName).addLinkListener(linkListener);
   }
 
   @Override
-  public <K, V> void registerMessageHandler(final String groupingName, final EventHandler<Message<Tuple<K, V>>> messageHandler) {
+  public <K, V> void registerMessageHandler(final String groupingName, final EventHandler<Message<ShuffleTupleMessage<K, V>>> messageHandler) {
     messageHandlerMap.get(groupingName).addEventHandler(messageHandler);
   }
 
-  private Message<Tuple> convertShuffleMessageToTupleMessage(
-      final ShuffleMessage message, final Identifier srcId, final Identifier destId) {
-
-    final int dataLength = message.getDataLength();
-    final Codec<Tuple> tupleCodec = tupleCodecMap.get(message.getGroupingName());
-    final List<Tuple> tupleList = new ArrayList<>(dataLength);
-    for (int i = 0; i < dataLength; i++) {
-      tupleList.add(tupleCodec.decode(message.getDataAt(i)));
-    }
-    return new SimpleNetworkMessage<>(
-        srcId,
-        destId,
-        tupleList
-    );
-  }
-
-  private final class ShuffleMessageHandler implements EventHandler<Message<ShuffleMessage>> {
+  private final class ControlMessageHandler implements EventHandler<Message<ShuffleControlMessage>> {
 
     @Override
-    public void onNext(final Message<ShuffleMessage> message) {
+    public void onNext(final Message<ShuffleControlMessage> message) {
       final ShuffleMessage shuffleMessage = message.getData().iterator().next();
-      if (shuffleMessage.getCode() == ShuffleMessage.TUPLE) {
-        messageHandlerMap.get(shuffleMessage.getGroupingName())
-            .onNext(convertShuffleMessageToTupleMessage(shuffleMessage, message.getSrcId(), message.getDestId()));
-      } else {
-        //
+      if (shuffleMessage.getCode() == ImmutableShuffleMessageCode.TOPOLOGY_SETUP) {
+        synchronized (ImmutableShuffleTopologyClient.this) {
+          isTopologySetup = true;
+          ImmutableShuffleTopologyClient.this.notifyAll();
+        }
       }
     }
   }
 
-  private final class ShuffleLinkListener implements LinkListener<Message<ShuffleMessage>> {
+  private final class ControlLinkListener implements LinkListener<Message<ShuffleControlMessage>> {
 
     @Override
-    public void onSuccess(final Message<ShuffleMessage> message) {
-      final ShuffleMessage shuffleMessage = message.getData().iterator().next();
-      if (shuffleMessage.getCode() == ShuffleMessage.TUPLE) {
-        linkListenerMap.get(shuffleMessage.getGroupingName())
-            .onSuccess(convertShuffleMessageToTupleMessage(shuffleMessage, message.getSrcId(), message.getDestId()));
-      } else {
-        //
-      }
+    public void onSuccess(final Message<ShuffleControlMessage> message) {
     }
 
     @Override
-    public void onException(final Throwable cause, final SocketAddress remoteAddress, final Message<ShuffleMessage> message) {
-      final ShuffleMessage shuffleMessage = message.getData().iterator().next();
-      if (shuffleMessage.getCode() == ShuffleMessage.TUPLE) {
-        linkListenerMap.get(shuffleMessage.getGroupingName())
-            .onException(
-                cause,
-                remoteAddress,
-                convertShuffleMessageToTupleMessage(shuffleMessage, message.getSrcId(), message.getDestId())
-            );
-      } else {
-        //
-      }
+    public void onException(final Throwable cause, final SocketAddress remoteAddress, final Message<ShuffleControlMessage> message) {
+    }
+  }
+
+  private final class TupleMessageHandler implements EventHandler<Message<ShuffleTupleMessage>> {
+
+    @Override
+    public void onNext(final Message<ShuffleTupleMessage> message) {
+      final String groupingName = message.getData().iterator().next().getGroupingName();
+      messageHandlerMap.get(groupingName).onNext(message);
+    }
+  }
+
+  private final class TupleLinkListener implements LinkListener<Message<ShuffleTupleMessage>> {
+
+    @Override
+    public void onSuccess(final Message<ShuffleTupleMessage> message) {
+      final String groupingName = message.getData().iterator().next().getGroupingName();
+      linkListenerMap.get(groupingName).onSuccess(message);
+    }
+
+    @Override
+    public void onException(final Throwable cause, final SocketAddress remoteAddress, final Message<ShuffleTupleMessage> message) {
+      final String groupingName = message.getData().iterator().next().getGroupingName();
+      linkListenerMap.get(groupingName).onException(cause, remoteAddress, message);
     }
   }
 }

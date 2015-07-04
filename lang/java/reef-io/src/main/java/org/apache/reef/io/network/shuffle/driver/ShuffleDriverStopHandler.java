@@ -19,7 +19,7 @@
 package org.apache.reef.io.network.shuffle.driver;
 
 import org.apache.reef.io.network.NetworkService;
-import org.apache.reef.io.network.shuffle.params.ShuffleNetworkServiceId;
+import org.apache.reef.io.network.shuffle.params.ShuffleControlMessageNSId;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.time.event.StopTime;
 
@@ -39,6 +39,6 @@ final class ShuffleDriverStopHandler implements EventHandler<StopTime> {
 
   @Override
   public void onNext(final StopTime value) {
-    networkService.unregisterConnectionFactory(ShuffleNetworkServiceId.class);
+    networkService.unregisterConnectionFactory(ShuffleControlMessageNSId.class);
   }
 }

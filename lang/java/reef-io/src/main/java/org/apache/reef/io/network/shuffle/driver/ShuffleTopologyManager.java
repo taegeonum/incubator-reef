@@ -22,12 +22,15 @@ import org.apache.reef.driver.task.CompletedTask;
 import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.io.network.shuffle.topology.ShuffleTopologyController;
+import org.apache.reef.io.network.shuffle.topology.TopologyDescription;
 import org.apache.reef.tang.Configuration;
 
 /**
  *
  */
 public interface ShuffleTopologyManager extends ShuffleTopologyController {
+
+  TopologyDescription getTopologyDescription();
 
   Configuration getTopologyConfigurationForTask(String taskId);
 

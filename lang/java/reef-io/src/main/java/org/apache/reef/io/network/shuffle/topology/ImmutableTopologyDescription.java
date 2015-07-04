@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.shuffle.impl;
+package org.apache.reef.io.network.shuffle.topology;
 
 import org.apache.reef.io.network.shuffle.driver.ShuffleTopologyManager;
+import org.apache.reef.io.network.shuffle.impl.ImmutableShuffleTopologyClient;
+import org.apache.reef.io.network.shuffle.impl.ImmutableShuffleTopologyManager;
 import org.apache.reef.io.network.shuffle.task.ShuffleTopologyClient;
-import org.apache.reef.io.network.shuffle.topology.GroupingDescription;
-import org.apache.reef.io.network.shuffle.topology.NodePoolDescription;
-import org.apache.reef.io.network.shuffle.topology.TopologyDescription;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.annotations.Name;
 

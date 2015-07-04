@@ -19,15 +19,16 @@
 package org.apache.reef.io.network.shuffle.task;
 
 import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.tang.annotations.DefaultImplementation;
 import org.apache.reef.wake.EventHandler;
 
 /**
  *
  */
-@DefaultImplementation(BaseShuffleTupleReceiver.class)
+@DefaultImplementation(BaseTupleReceiver.class)
 public interface ShuffleTupleReceiver<K, V> extends ShuffleTupleOperator<K, V> {
 
-  void registerMessageHandler(EventHandler<Message<Tuple<K, V>>> messageHandler);
+  void registerMessageHandler(EventHandler<Message<ShuffleTupleMessage<K, V>>> messageHandler);
 
 }

@@ -19,6 +19,7 @@
 package org.apache.reef.io.network.shuffle.task;
 
 import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.io.network.shuffle.topology.GroupingDescription;
 import org.apache.reef.wake.EventHandler;
 
@@ -27,13 +28,13 @@ import javax.inject.Inject;
 /**
  *
  */
-public class BaseShuffleTupleReceiver<K, V> implements ShuffleTupleReceiver<K, V> {
+public class BaseTupleReceiver<K, V> implements ShuffleTupleReceiver<K, V> {
 
   private final ShuffleTopologyClient topologyClient;
   private final GroupingDescription<K, V> groupingDescription;
 
   @Inject
-  public BaseShuffleTupleReceiver(
+  public BaseTupleReceiver(
       final ShuffleTopologyClient topologyClient,
       final GroupingDescription<K, V> groupingDescription) {
     this.groupingDescription = groupingDescription;
@@ -41,7 +42,7 @@ public class BaseShuffleTupleReceiver<K, V> implements ShuffleTupleReceiver<K, V
   }
 
   @Override
-  public void registerMessageHandler(final EventHandler<Message<Tuple<K, V>>> messageHandler) {
+  public void registerMessageHandler(final EventHandler<Message<ShuffleTupleMessage<K, V>>> messageHandler) {
     topologyClient.registerMessageHandler(getGroupingName(), messageHandler);
   }
 

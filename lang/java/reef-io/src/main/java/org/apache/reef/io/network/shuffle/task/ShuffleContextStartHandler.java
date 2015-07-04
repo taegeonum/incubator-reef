@@ -22,7 +22,8 @@ import org.apache.reef.evaluator.context.events.ContextStart;
 import org.apache.reef.exception.evaluator.NetworkException;
 import org.apache.reef.io.network.NetworkService;
 import org.apache.reef.io.network.shuffle.ns.*;
-import org.apache.reef.io.network.shuffle.params.ShuffleNetworkServiceId;
+import org.apache.reef.io.network.shuffle.params.ShuffleControlMessageNSId;
+import org.apache.reef.io.network.shuffle.params.ShuffleTupleMessageNSId;
 import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
@@ -33,26 +34,37 @@ import javax.inject.Inject;
 public final class ShuffleContextStartHandler implements EventHandler<ContextStart> {
 
   private final NetworkService networkService;
-  private final ShuffleMessageCodec codec;
-  private final ShuffleMessageHandler handler;
-  private final ShuffleLinkListener linkListener;
+  private final ShuffleControlMessageCodec controlCodec;
+  private final ShuffleControlMessageHandler controlHandler;
+  private final ShuffleControlLinkListener controlLinkListener;
+
+  private final ShuffleTupleMessageCodec tupleCodec;
+  private final ShuffleTupleMessageHandler tupleHandler;
+  private final ShuffleTupleLinkListener tupleLinkListener;
 
   @Inject
   public ShuffleContextStartHandler(
       final NetworkService networkService,
-      final ShuffleMessageCodec codec,
-      final ShuffleMessageHandler handler,
-      final ShuffleLinkListener linkListener) {
+      final ShuffleControlMessageCodec controlCodec,
+      final ShuffleControlMessageHandler controlHandler,
+      final ShuffleControlLinkListener controlLinkListener,
+      final ShuffleTupleMessageCodec tupleCodec,
+      final ShuffleTupleMessageHandler tupleHandler,
+      final ShuffleTupleLinkListener tupleLinkListener) {
     this.networkService = networkService;
-    this.codec = codec;
-    this.handler = handler;
-    this.linkListener = linkListener;
+    this.controlCodec = controlCodec;
+    this.controlHandler = controlHandler;
+    this.controlLinkListener = controlLinkListener;
+    this.tupleCodec = tupleCodec;
+    this.tupleHandler = tupleHandler;
+    this.tupleLinkListener = tupleLinkListener;
   }
 
   @Override
   public void onNext(ContextStart value) {
     try {
-      networkService.registerConnectionFactory(ShuffleNetworkServiceId.class, codec, handler, linkListener);
+      networkService.registerConnectionFactory(ShuffleControlMessageNSId.class, controlCodec, controlHandler, controlLinkListener);
+      networkService.registerConnectionFactory(ShuffleTupleMessageNSId.class, tupleCodec, tupleHandler, tupleLinkListener);
     } catch (NetworkException e) {
       throw new RuntimeException(e);
     }

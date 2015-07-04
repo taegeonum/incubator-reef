@@ -20,7 +20,7 @@ package org.apache.reef.io.network.shuffle.task;
 
 import org.apache.reef.evaluator.context.events.ContextStop;
 import org.apache.reef.io.network.NetworkService;
-import org.apache.reef.io.network.shuffle.params.ShuffleNetworkServiceId;
+import org.apache.reef.io.network.shuffle.params.ShuffleControlMessageNSId;
 import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
@@ -41,6 +41,6 @@ public final class ShuffleContextStopHandler implements EventHandler<ContextStop
 
   @Override
   public void onNext(ContextStop value) {
-    networkService.unregisterConnectionFactory(ShuffleNetworkServiceId.class);
+    networkService.unregisterConnectionFactory(ShuffleControlMessageNSId.class);
   }
 }

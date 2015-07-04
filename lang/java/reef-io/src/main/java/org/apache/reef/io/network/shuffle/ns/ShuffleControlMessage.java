@@ -16,32 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.shuffle.grouping.impl;
-
-import org.apache.reef.io.network.shuffle.grouping.Grouping;
-import org.apache.reef.io.network.shuffle.topology.NodePoolDescription;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
+package org.apache.reef.io.network.shuffle.ns;
 
 /**
  *
  */
-public final class KeyGrouping<K> implements Grouping<K> {
+public final class ShuffleControlMessage extends ShuffleMessage {
 
-  @Inject
-  public KeyGrouping() {
+  private final byte[][] data;
+
+  public ShuffleControlMessage(
+      final int code,
+      final String topologyName,
+      final String groupingName,
+      final byte[][] data) {
+    super(code, topologyName, groupingName);
+    if (code == ShuffleMessage.TUPLE_MESSAGE) {
+      throw new RuntimeException("0 cannot be used as ShuffleControlMessage code since it is reserved for TUPLE_MESSAGE");
+    }
+    this.data = data;
   }
 
   @Override
-  public List<String> selectReceivers(K key, NodePoolDescription receiverPoolDescription) {
-    int index = key.hashCode() % receiverPoolDescription.getNodePoolSize();
-    if (index < 0) {
-      index += receiverPoolDescription.getNodePoolSize();
+  public int getDataLength() {
+    if (data == null) {
+      return 0;
     }
-    final List<String> list =  new ArrayList<>();
-    list.add(receiverPoolDescription.getNodeIdAt(index));
-    return list;
+
+    return data.length;
+  }
+
+  @Override
+  public byte[] getDataAt(final int index) {
+    return data[index];
   }
 }

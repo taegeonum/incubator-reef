@@ -19,20 +19,43 @@
 package org.apache.reef.io.network.shuffle.task;
 
 import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
+import org.apache.reef.io.network.shuffle.topology.GroupingDescription;
+import org.apache.reef.io.network.shuffle.topology.NodePoolDescription;
 import org.apache.reef.io.network.shuffle.topology.ShuffleTopologyController;
 import org.apache.reef.wake.EventHandler;
+import org.apache.reef.wake.remote.Codec;
 import org.apache.reef.wake.remote.transport.LinkListener;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  *
  */
 public interface ShuffleTopologyClient extends ShuffleTopologyController {
 
+  boolean waitForTopologySetup();
+
+  EventHandler<Message<ShuffleTupleMessage>> getTupleMessageHandler();
+
+  LinkListener<Message<ShuffleTupleMessage>> getTupleLinkListener();
+
+  Codec<Tuple> getTupleCodec(String groupingName);
+
+  Map<String, GroupingDescription> getGroupingDescriptionMap();
+
+  Map<String, NodePoolDescription> getNodePoolDescriptionMap();
+
+  Map<String, NodePoolDescription> getSenderPoolDescriptionMap();
+
+  Map<String, NodePoolDescription> getReceiverPoolDescriptionMap();
+
   <K, V> ShuffleTupleReceiver<K, V> getReceiver(String groupingName);
 
   <K, V> ShuffleTupleSender<K, V> getSender(String groupingName);
 
-  <K, V> void registerLinkListener(String groupingName, LinkListener<Message<Tuple<K, V>>> linkListener);
+  <K, V> void registerLinkListener(String groupingName, LinkListener<Message<ShuffleTupleMessage<K, V>>> linkListener);
 
-  <K, V> void registerMessageHandler(String groupingName, EventHandler<Message<Tuple<K ,V>>> messageHandler);
+  <K, V> void registerMessageHandler(String groupingName, EventHandler<Message<ShuffleTupleMessage<K ,V>>> messageHandler);
 }

@@ -21,9 +21,11 @@ package org.apache.reef.io.network.shuffle.params;
 import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.NamedParameter;
 
+import java.util.Set;
+
 /**
- * NetworkService identifier for shuffle
+ *
  */
-@NamedParameter(doc = "network service id for shuffle")
-public final class ShuffleNetworkServiceId implements Name<String> {
+@NamedParameter
+public final class SerializedSenderNodePoolSet implements Name<Set<String>> {
 }

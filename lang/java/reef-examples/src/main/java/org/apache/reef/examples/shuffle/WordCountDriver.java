@@ -23,6 +23,7 @@ import org.apache.reef.driver.evaluator.AllocatedEvaluator;
 import org.apache.reef.driver.evaluator.EvaluatorRequest;
 import org.apache.reef.driver.evaluator.EvaluatorRequestor;
 import org.apache.reef.driver.task.TaskConfiguration;
+import org.apache.reef.examples.shuffle.params.InputString;
 import org.apache.reef.examples.shuffle.params.WordCountTopology;
 import org.apache.reef.examples.shuffle.utils.IntegerCodec;
 import org.apache.reef.examples.shuffle.utils.StringCodec;
@@ -30,16 +31,16 @@ import org.apache.reef.io.network.impl.NetworkServiceConfiguration;
 import org.apache.reef.io.network.naming.NameClientConfiguration;
 import org.apache.reef.io.network.naming.NameServer;
 import org.apache.reef.io.network.shuffle.driver.ShuffleDriver;
-import org.apache.reef.io.network.shuffle.driver.ShuffleTopologyManager;
 import org.apache.reef.io.network.shuffle.grouping.impl.AllGrouping;
 import org.apache.reef.io.network.shuffle.grouping.impl.KeyGrouping;
-import org.apache.reef.io.network.shuffle.impl.ImmutableGroupingDescription;
-import org.apache.reef.io.network.shuffle.impl.ImmutableNodePoolDescription;
-import org.apache.reef.io.network.shuffle.impl.ImmutableTopologyDescription;
+import org.apache.reef.io.network.shuffle.topology.ImmutableGroupingDescription;
+import org.apache.reef.io.network.shuffle.topology.ImmutableNodePoolDescription;
+import org.apache.reef.io.network.shuffle.topology.ImmutableTopologyDescription;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Configurations;
 import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.annotations.Unit;
+import org.apache.reef.tang.formats.ConfigurationSerializer;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.remote.address.LocalAddressProvider;
 import org.apache.reef.wake.time.event.StartTime;
@@ -67,6 +68,8 @@ public final class WordCountDriver {
   private final int mapperNum = 3;
   private final int reducerNum = 2;
 
+  private final String[] inputStringArr;
+
   private final String[] mapperIds;
   private final String[] reducerIds;
 
@@ -81,24 +84,40 @@ public final class WordCountDriver {
   public static final String SHUFFLE_GROUPING = "shuffleGrouping";
   public static final String AGGREGATING_GROUPING = "aggregatingGrouping";
 
+  private final ConfigurationSerializer confSerializer;
   @Inject
   public WordCountDriver(
+      final ConfigurationSerializer confSerializer,
       final EvaluatorRequestor requestor,
       final LocalAddressProvider localAddressProvider,
       final NameServer nameServer,
       final ShuffleDriver shuffleDriver) {
     LOG.log(Level.FINE, "Instantiated 'WordCountDriver'");
+    this.confSerializer = confSerializer;
     this.requestor = requestor;
     this.localAddressProvider = localAddressProvider;
     this.nameServer = nameServer;
     this.shuffleDriver = shuffleDriver;
 
     this.allocatedEvalNum = new AtomicInteger(0);
+    this.inputStringArr = new String[mapperNum];
     this.mapperIds = new String[mapperNum];
     this.reducerIds = new String[reducerNum];
 
+    createInputStrings();
     createTaskIds();
     createWordCountTopology();
+  }
+
+  private void createInputStrings() {
+    final String input = InputString.INPUT.toLowerCase();
+    System.out.println(input);
+    final int delta = input.length() / mapperNum;
+    int index = 0;
+    for (int i = 0; i < mapperNum; i++) {
+      inputStringArr[i] = input.substring(index, Math.min(input.length(), index + delta));
+      index += delta;
+    }
   }
 
   private void createTaskIds() {
@@ -161,9 +180,11 @@ public final class WordCountDriver {
       final String taskId;
       if (allocatedNum < mapperNum) {
         taskId = mapperIds[allocatedNum];
-        partialTaskConf = TaskConfiguration.CONF
+        partialTaskConf = Tang.Factory.getTang().newConfigurationBuilder(TaskConfiguration.CONF
             .set(TaskConfiguration.IDENTIFIER, taskId)
             .set(TaskConfiguration.TASK, MapperTask.class)
+            .build())
+            .bindNamedParameter(InputString.class, inputStringArr[allocatedNum])
             .build();
       } else if (allocatedNum < mapperNum + reducerNum) {
         taskId = reducerIds[allocatedNum - mapperNum];

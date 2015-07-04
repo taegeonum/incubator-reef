@@ -20,6 +20,7 @@ package org.apache.reef.examples.shuffle;
 
 import org.apache.reef.examples.shuffle.params.WordCountTopology;
 import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.io.network.shuffle.task.ShuffleService;
 import org.apache.reef.io.network.shuffle.task.ShuffleTupleReceiver;
 import org.apache.reef.io.network.shuffle.task.ShuffleTupleSender;
@@ -28,6 +29,10 @@ import org.apache.reef.task.Task;
 import org.apache.reef.wake.EventHandler;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -35,7 +40,7 @@ import javax.inject.Inject;
 public final class ReducerTask implements Task {
 
   private final ShuffleTupleSender<String, Integer> tupleSender;
-
+  private final Map<String, Integer> reduceMap;
   @Inject
   public ReducerTask(
       final ShuffleService shuffleService) {
@@ -43,23 +48,42 @@ public final class ReducerTask implements Task {
     final ShuffleTupleReceiver<String, Integer> tupleReceiver = shuffleService.getTopologyClient(WordCountTopology.class)
         .getReceiver(WordCountDriver.SHUFFLE_GROUPING);
     tupleReceiver.registerMessageHandler(new MessageHandler());
+    this.reduceMap = new HashMap<>();
   }
 
   @Override
   public byte[] call(byte[] memento) throws Exception {
     System.out.println("ReducerTask");
-    tupleSender.sendTuple(new Tuple<>("asdf", 5));
     Thread.sleep(2000);
+
+    List<Tuple<String, Integer>> tupleList = new ArrayList<>();
+
+    for (final Map.Entry<String, Integer> entry : reduceMap.entrySet()) {
+      tupleList.add(new Tuple<>(entry.getKey(), entry.getValue()));
+    }
+
+    tupleSender.sendTuple(tupleList);
+
     return null;
   }
 
-  private final class MessageHandler implements EventHandler<Message<Tuple<String, Integer>>> {
+  private synchronized void addTuple(final Tuple<String, Integer> tuple) {
+    if (!reduceMap.containsKey(tuple.getKey())) {
+      reduceMap.put(tuple.getKey(), 0);
+    }
 
+    reduceMap.put(tuple.getKey(), tuple.getValue() + reduceMap.get(tuple.getKey()));
+  }
+
+  private final class MessageHandler implements EventHandler<Message<ShuffleTupleMessage<String, Integer>>> {
     @Override
-    public void onNext(final Message<Tuple<String, Integer>> value) {
-      System.out.println("message from " + value.getSrcId());
-      for (Tuple<String, Integer> tuple : value.getData()) {
-        System.out.println(tuple);
+    public void onNext(Message<ShuffleTupleMessage<String, Integer>> msg) {
+      System.out.println("message from " + msg.getSrcId());
+      for (ShuffleTupleMessage<String, Integer> tupleMessage : msg.getData()) {
+        for (int i = 0; i < tupleMessage.getDataLength(); i++) {
+          System.out.println(tupleMessage.getDataAt(i));
+          addTuple(tupleMessage.getDataAt(i));
+        }
       }
     }
   }

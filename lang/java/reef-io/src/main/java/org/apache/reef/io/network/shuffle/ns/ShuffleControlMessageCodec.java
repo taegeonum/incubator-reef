@@ -26,14 +26,14 @@ import java.io.*;
 /**
  *
  */
-public final class ShuffleMessageCodec implements StreamingCodec<ShuffleMessage> {
+public class ShuffleControlMessageCodec implements StreamingCodec<ShuffleControlMessage> {
 
   @Inject
-  public ShuffleMessageCodec() {
+  public ShuffleControlMessageCodec() {
   }
 
   @Override
-  public byte[] encode(final ShuffleMessage msg) {
+  public byte[] encode(final ShuffleControlMessage msg) {
     try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
       try (final DataOutputStream daos = new DataOutputStream(baos)) {
         encodeToStream(msg, daos);
@@ -45,7 +45,7 @@ public final class ShuffleMessageCodec implements StreamingCodec<ShuffleMessage>
   }
 
   @Override
-  public ShuffleMessage decode(final byte[] data) {
+  public ShuffleControlMessage decode(final byte[] data) {
     try (final ByteArrayInputStream bais = new ByteArrayInputStream(data)) {
       try (final DataInputStream dais = new DataInputStream(bais)) {
         return decodeFromStream(dais);
@@ -56,7 +56,7 @@ public final class ShuffleMessageCodec implements StreamingCodec<ShuffleMessage>
   }
 
   @Override
-  public void encodeToStream(final ShuffleMessage msg, final DataOutputStream stream) {
+  public void encodeToStream(final ShuffleControlMessage msg, final DataOutputStream stream) {
     try {
       stream.writeInt(msg.getCode());
       if (msg.getTopologyName() == null) {
@@ -71,9 +71,10 @@ public final class ShuffleMessageCodec implements StreamingCodec<ShuffleMessage>
         stream.writeUTF(msg.getGroupingName());
       }
 
-      final int dataLength = msg.getDataLength();
-      stream.writeInt(dataLength);
-      for (int i = 0; i < dataLength; i++) {
+      stream.writeInt(msg.getDataLength());
+
+      final int messageLength = msg.getDataLength();
+      for (int i = 0; i < messageLength; i++) {
         stream.writeInt(msg.getDataAt(i).length);
         stream.write(msg.getDataAt(i));
       }
@@ -83,7 +84,7 @@ public final class ShuffleMessageCodec implements StreamingCodec<ShuffleMessage>
   }
 
   @Override
-  public ShuffleMessage decodeFromStream(final DataInputStream stream) {
+  public ShuffleControlMessage decodeFromStream(final DataInputStream stream) {
     try {
       final int code = stream.readInt();
       String topologyName = stream.readUTF();
@@ -98,14 +99,17 @@ public final class ShuffleMessageCodec implements StreamingCodec<ShuffleMessage>
       }
 
       final int dataNum = stream.readInt();
-      final byte[][] serializedTuples = new byte[dataNum][];
+      final byte[][] dataArr = new byte[dataNum][];
+
       for (int i = 0; i < dataNum; i++) {
         final int dataSize = stream.readInt();
-        final byte[] dataArr = new byte[dataSize];
-        stream.readFully(dataArr);
-        serializedTuples[i] = dataArr;
+        final byte[] byteArr = new byte[dataSize];
+        stream.readFully(byteArr);
+        dataArr[i] = byteArr;
       }
-      return new ShuffleMessage(code, topologyName, groupingName, serializedTuples);
+
+      return new ShuffleControlMessage(code, topologyName, groupingName, dataArr);
+
     } catch(final IOException exception) {
       throw new RuntimeException(exception);
     }

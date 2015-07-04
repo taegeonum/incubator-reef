@@ -30,33 +30,32 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  *
  */
-final class ShuffleLinkListenerImpl implements ShuffleLinkListener {
+final class ShuffleControlLinkListenerImpl implements ShuffleControlLinkListener {
 
-  private final Map<String, LinkListener<Message<ShuffleMessage>>> linkListenerMap;
-
+  private final Map<String, LinkListener<Message<ShuffleControlMessage>>> linkListenerMap;
 
   @Inject
-  public ShuffleLinkListenerImpl() {
+  public ShuffleControlLinkListenerImpl() {
     linkListenerMap = new ConcurrentHashMap<>();
   }
 
   @Override
-  public void onSuccess(final Message<ShuffleMessage> message) {
+  public void onSuccess(final Message<ShuffleControlMessage> message) {
     linkListenerMap.get(getTopologyNameFrom(message)).onSuccess(message);
   }
 
   @Override
-  public void onException(final Throwable cause, final SocketAddress remoteAddress, final Message<ShuffleMessage> message) {
+  public void onException(final Throwable cause, final SocketAddress remoteAddress, final Message<ShuffleControlMessage> message) {
     linkListenerMap.get(getTopologyNameFrom(message)).onSuccess(message);
   }
 
-  private String getTopologyNameFrom(final Message<ShuffleMessage> message) {
+  private String getTopologyNameFrom(final Message<ShuffleControlMessage> message) {
     return message.getData().iterator().next().getTopologyName();
   }
 
   @Override
   public void registerLinkListener(final Class<? extends Name<String>> topologyName,
-                                   final LinkListener<Message<ShuffleMessage>> linkListener) {
+                                   final LinkListener<Message<ShuffleControlMessage>> linkListener) {
     linkListenerMap.put(topologyName.getName(), linkListener);
   }
 }

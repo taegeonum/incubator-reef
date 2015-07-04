@@ -24,6 +24,7 @@ import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.Message;
 import org.apache.reef.io.network.naming.NameServerParameters;
 import org.apache.reef.io.network.shuffle.ns.ShuffleMessage;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.io.network.shuffle.topology.GroupingDescription;
 import org.apache.reef.io.network.shuffle.topology.NodePoolDescription;
 import org.apache.reef.tang.annotations.Parameter;
@@ -38,21 +39,23 @@ import java.util.Map;
 /**
  *
  */
-public final class BaseShuffleTupleSender<K, V> implements ShuffleTupleSender<K, V> {
+public final class BaseTupleSender<K, V> implements ShuffleTupleSender<K, V> {
 
   private final ShuffleTopologyClient topologyClient;
-  private final ConnectionFactory<ShuffleMessage> connFactory;
-  private final Map<String, Connection<ShuffleMessage>> connMap;
+  private final ConnectionFactory<ShuffleTupleMessage> connFactory;
+  private final Map<String, Connection<ShuffleTupleMessage>> connMap;
   private final IdentifierFactory idFactory;
   private final NodePoolDescription receiverPool;
+  private final GroupingDescription<K, V> groupingDescription;
   private final ShuffleTupleSerializer<K, V> tupleSerializer;
 
   @Inject
-  public BaseShuffleTupleSender(
+  public BaseTupleSender(
       final ShuffleTopologyClient topologyClient,
-      final ConnectionFactory<ShuffleMessage> connFactory,
+      final ConnectionFactory<ShuffleTupleMessage> connFactory,
       final @Parameter(NameServerParameters.NameServerIdentifierFactory.class) IdentifierFactory idFactory,
       final NodePoolDescription receiverPool,
+      final GroupingDescription<K, V> groupingDescription,
       final ShuffleTupleSerializer<K, V> tupleSerializer) {
 
     this.topologyClient = topologyClient;
@@ -60,6 +63,7 @@ public final class BaseShuffleTupleSender<K, V> implements ShuffleTupleSender<K,
     this.idFactory = idFactory;
     this.connMap = new HashMap<>();
     this.receiverPool = receiverPool;
+    this.groupingDescription = groupingDescription;
     this.tupleSerializer = tupleSerializer;
     createConnections();
   }
@@ -71,7 +75,7 @@ public final class BaseShuffleTupleSender<K, V> implements ShuffleTupleSender<K,
   }
 
   private void createConnection(final String nodeId) {
-    final Connection<ShuffleMessage> connection = connFactory.newConnection(idFactory.getNewInstance(nodeId));
+    final Connection<ShuffleTupleMessage> connection = connFactory.newConnection(idFactory.getNewInstance(nodeId));
     connMap.put(nodeId, connection);
   }
 
@@ -91,19 +95,21 @@ public final class BaseShuffleTupleSender<K, V> implements ShuffleTupleSender<K,
   }
 
   @Override
-  public void registerLinkListener(final LinkListener<Message<Tuple<K, V>>> linkListener) {
+  public void registerLinkListener(final LinkListener<Message<ShuffleTupleMessage<K, V>>> linkListener) {
     topologyClient.registerLinkListener(getGroupingName(), linkListener);
   }
 
-  private int sendShuffleMessageTupleList(final List<Tuple<String, ShuffleMessage>> messageTupleList) {
-    for (final Tuple<String, ShuffleMessage> shuffleMessageTuple : messageTupleList) {
+  private int sendShuffleMessageTupleList(final List<Tuple<String, ShuffleTupleMessage>> messageTupleList) {
+    for (final Tuple<String, ShuffleTupleMessage> shuffleMessageTuple : messageTupleList) {
       sendShuffleMessageTuple(shuffleMessageTuple);
     }
 
     return messageTupleList.size();
   }
 
-  private void sendShuffleMessageTuple(final Tuple<String, ShuffleMessage> messageTuple) {
+  private void sendShuffleMessageTuple(final Tuple<String, ShuffleTupleMessage> messageTuple) {
+    topologyClient.waitForTopologySetup();
+
     try {
       connMap.get(messageTuple.getKey()).open();
       connMap.get(messageTuple.getKey()).write(messageTuple.getValue());
@@ -115,11 +121,11 @@ public final class BaseShuffleTupleSender<K, V> implements ShuffleTupleSender<K,
 
   @Override
   public String getGroupingName() {
-    return null;
+    return groupingDescription.getGroupingName();
   }
 
   @Override
   public GroupingDescription<K, V> getGroupingDescription() {
-    return null;
+    return groupingDescription;
   }
 }

@@ -29,24 +29,24 @@ import java.util.Map;
 /**
  *
  */
-final class ShuffleMessageHandlerImpl implements ShuffleMessageHandler {
+final class ShuffleControlMessageHandlerImpl implements ShuffleControlMessageHandler {
 
-  private final Map<String, EventHandler<Message<ShuffleMessage>>> eventHandlerMap;
+  private final Map<String, EventHandler<Message<ShuffleControlMessage>>> eventHandlerMap;
 
   @Inject
-  public ShuffleMessageHandlerImpl() {
+  public ShuffleControlMessageHandlerImpl() {
     eventHandlerMap = new HashMap<>();
   }
 
   @Override
-  public void onNext(final Message<ShuffleMessage> message) {
+  public void onNext(final Message<ShuffleControlMessage> message) {
     final String topologyName = message.getData().iterator().next().getTopologyName();
     eventHandlerMap.get(topologyName).onNext(message);
   }
 
   @Override
   public void registerMessageHandler(final Class<? extends Name<String>> topologyName,
-                                     final EventHandler<Message<ShuffleMessage>> eventHandler) {
+                                     final EventHandler<Message<ShuffleControlMessage>> eventHandler) {
     eventHandlerMap.put(topologyName.getName(), eventHandler);
   }
 }

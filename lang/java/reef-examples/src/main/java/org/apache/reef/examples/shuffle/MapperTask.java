@@ -18,13 +18,19 @@
  */
 package org.apache.reef.examples.shuffle;
 
+import org.apache.reef.examples.shuffle.params.InputString;
 import org.apache.reef.examples.shuffle.params.WordCountTopology;
 import org.apache.reef.io.network.shuffle.task.ShuffleTupleSender;
 import org.apache.reef.io.network.shuffle.task.ShuffleService;
 import org.apache.reef.io.network.shuffle.task.Tuple;
+import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.task.Task;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -32,19 +38,35 @@ import javax.inject.Inject;
 public final class MapperTask implements Task {
 
   private final ShuffleTupleSender<String, Integer> tupleSender;
-
+  private final String input;
   @Inject
   public MapperTask(
-      final ShuffleService shuffleService) {
+      final ShuffleService shuffleService,
+      final @Parameter(InputString.class) String input) {
     this.tupleSender = shuffleService.getTopologyClient(WordCountTopology.class).getSender(WordCountDriver.SHUFFLE_GROUPING);
+    this.input = input;
   }
 
   @Override
   public byte[] call(byte[] memento) throws Exception {
-    System.out.println("MapperTask");
-    tupleSender.sendTuple(new Tuple<>("asdf", 0));
-    tupleSender.sendTuple(new Tuple<>("sdfsf", 2));
-    tupleSender.sendTuple(new Tuple<>("sdfssdff", 2));
+    final Map<String, Integer> reducedInputMap = new HashMap<>();
+    for (final String word : input.split(" ")) {
+      if (!reducedInputMap.containsKey(word)) {
+        reducedInputMap.put(word, 0);
+      }
+
+      reducedInputMap.put(word, 1 + reducedInputMap.get(word));
+    }
+
+    final List<Tuple<String, Integer>> tupleList = new ArrayList<>();
+
+    for (final Map.Entry<String, Integer> entry : reducedInputMap.entrySet()) {
+      final Tuple<String, Integer> tuple = new Tuple<>(entry.getKey(), entry.getValue());
+      tupleList.add(tuple);
+      System.out.println(tuple);
+    }
+
+    tupleSender.sendTuple(tupleList);
     return null;
   }
 }

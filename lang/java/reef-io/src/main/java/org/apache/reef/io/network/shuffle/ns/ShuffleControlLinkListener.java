@@ -16,41 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.shuffle.utils;
+package org.apache.reef.io.network.shuffle.ns;
 
 import org.apache.reef.io.network.Message;
-import org.apache.reef.wake.Identifier;
+import org.apache.reef.tang.annotations.DefaultImplementation;
+import org.apache.reef.tang.annotations.Name;
+import org.apache.reef.wake.remote.transport.LinkListener;
 
 /**
  *
  */
-public class SimpleNetworkMessage<T> implements Message<T> {
-
-  private final Identifier srcId;
-  private final Identifier destId;
-  private final Iterable<T> data;
-
-  public SimpleNetworkMessage(
-      final Identifier srcId,
-      final Identifier destId,
-      final Iterable<T> data) {
-    this.srcId = srcId;
-    this.destId = destId;
-    this.data = data;
-  }
-
-  @Override
-  public Identifier getSrcId() {
-    return srcId;
-  }
-
-  @Override
-  public Identifier getDestId() {
-    return destId;
-  }
-
-  @Override
-  public Iterable<T> getData() {
-    return data;
-  }
+@DefaultImplementation(ShuffleControlLinkListenerImpl.class)
+public interface ShuffleControlLinkListener extends LinkListener<Message<ShuffleControlMessage>> {
+  void registerLinkListener(Class<? extends Name<String>> topologyName,
+                            LinkListener<Message<ShuffleControlMessage>> linkListener);
 }

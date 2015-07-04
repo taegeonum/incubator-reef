@@ -20,9 +20,9 @@ package org.apache.reef.examples.shuffle;
 
 import org.apache.reef.examples.shuffle.params.WordCountTopology;
 import org.apache.reef.io.network.Message;
+import org.apache.reef.io.network.shuffle.ns.ShuffleTupleMessage;
 import org.apache.reef.io.network.shuffle.task.ShuffleService;
 import org.apache.reef.io.network.shuffle.task.ShuffleTupleReceiver;
-import org.apache.reef.io.network.shuffle.task.Tuple;
 import org.apache.reef.task.Task;
 import org.apache.reef.wake.EventHandler;
 
@@ -32,7 +32,6 @@ import javax.inject.Inject;
  *
  */
 public final class AggregatorTask implements Task {
-
 
   @Inject
   public AggregatorTask(
@@ -45,17 +44,18 @@ public final class AggregatorTask implements Task {
   @Override
   public byte[] call(byte[] memento) throws Exception {
     System.out.println("AggregatorTask");
-    Thread.sleep(2000);
+    Thread.sleep(4000);
     return null;
   }
 
-  private final class MessageHandler implements EventHandler<Message<Tuple<String, Integer>>> {
-
+  private final class MessageHandler implements EventHandler<Message<ShuffleTupleMessage<String, Integer>>> {
     @Override
-    public void onNext(final Message<Tuple<String, Integer>> value) {
-      System.out.println("message from " + value.getSrcId());
-      for (Tuple<String, Integer> tuple : value.getData()) {
-        System.out.println(tuple);
+    public void onNext(Message<ShuffleTupleMessage<String, Integer>> msg) {
+      System.out.println("message from " + msg.getSrcId());
+      for (ShuffleTupleMessage<String, Integer> tupleMessage : msg.getData()) {
+        for (int i = 0; i < tupleMessage.getDataLength(); i++) {
+          System.out.println(tupleMessage.getDataAt(i));
+        }
       }
     }
   }
