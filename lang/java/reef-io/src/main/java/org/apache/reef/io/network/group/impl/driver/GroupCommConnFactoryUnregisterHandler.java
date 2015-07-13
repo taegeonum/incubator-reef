@@ -16,36 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.impl;
+package org.apache.reef.io.network.group.impl.driver;
 
+import org.apache.reef.evaluator.context.events.ContextStop;
 import org.apache.reef.io.network.NetworkConnectionService;
 import org.apache.reef.io.network.impl.config.NetworkConnectionServiceIdFactory;
 import org.apache.reef.tang.annotations.Parameter;
-import org.apache.reef.task.events.TaskStart;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.IdentifierFactory;
 
 import javax.inject.Inject;
 
 /**
- * TaskStart event handler for registering NetworkConnectionService.
- * Users have to bind this handler into ServiceConfiguration.ON_TASK_STARTED.
+ * Unregister GroupComm connection factory from NetworkConnectionService.
  */
-public final class BindNetworkConnectionServiceToTask implements EventHandler<TaskStart> {
-
-  private final NetworkConnectionService ncs;
-  private final IdentifierFactory idFac;
+public final class GroupCommConnFactoryUnregisterHandler implements EventHandler<ContextStop> {
 
   @Inject
-  private BindNetworkConnectionServiceToTask(
-      final NetworkConnectionService ncs,
-      @Parameter(NetworkConnectionServiceIdFactory.class) final IdentifierFactory idFac) {
-    this.ncs = ncs;
-    this.idFac = idFac;
+  private GroupCommConnFactoryUnregisterHandler(
+      @Parameter(NetworkConnectionServiceIdFactory.class) final IdentifierFactory idfac,
+      final NetworkConnectionService ncs) {
+    ncs.unregisterConnectionFactory(idfac.getNewInstance(GroupCommDriverImpl.GROUP_COMM_NCS_ID));
   }
 
   @Override
-  public void onNext(final TaskStart task) {
-    this.ncs.registerId(this.idFac.getNewInstance(task.getId()));
+  public void onNext(ContextStop value) {
   }
 }

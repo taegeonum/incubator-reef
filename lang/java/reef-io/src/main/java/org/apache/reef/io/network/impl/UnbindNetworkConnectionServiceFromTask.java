@@ -36,7 +36,7 @@ public final class UnbindNetworkConnectionServiceFromTask implements EventHandle
   private final IdentifierFactory idFac;
 
   @Inject
-  public UnbindNetworkConnectionServiceFromTask(
+  private UnbindNetworkConnectionServiceFromTask(
       final NetworkConnectionService ncs,
       @Parameter(NetworkConnectionServiceIdFactory.class) final IdentifierFactory idFac) {
     this.ncs = ncs;

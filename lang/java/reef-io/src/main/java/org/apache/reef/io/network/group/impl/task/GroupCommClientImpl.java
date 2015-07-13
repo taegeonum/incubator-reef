@@ -19,12 +19,17 @@
 package org.apache.reef.io.network.group.impl.task;
 
 import org.apache.reef.driver.task.TaskConfigurationOptions;
-import org.apache.reef.io.network.impl.NetworkService;
+import org.apache.reef.io.network.ConnectionFactory;
+import org.apache.reef.io.network.NetworkConnectionService;
 import org.apache.reef.io.network.group.api.task.CommunicationGroupClient;
 import org.apache.reef.io.network.group.api.task.CommunicationGroupServiceClient;
 import org.apache.reef.io.network.group.api.task.GroupCommClient;
 import org.apache.reef.io.network.group.api.task.GroupCommNetworkHandler;
+import org.apache.reef.io.network.group.impl.config.parameters.NetConnServiceConfigured;
 import org.apache.reef.io.network.group.impl.config.parameters.SerializedGroupConfigs;
+import org.apache.reef.io.network.group.impl.driver.GroupCommDriverImpl;
+import org.apache.reef.io.network.impl.NetworkService;
+import org.apache.reef.io.network.impl.config.NetworkConnectionServiceIdFactory;
 import org.apache.reef.io.network.proto.ReefNetworkGroupCommProtos;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Injector;
@@ -33,6 +38,7 @@ import org.apache.reef.tang.annotations.Name;
 import org.apache.reef.tang.annotations.Parameter;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.tang.formats.ConfigurationSerializer;
+import org.apache.reef.wake.IdentifierFactory;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -48,6 +54,10 @@ public class GroupCommClientImpl implements GroupCommClient {
   private final Map<Class<? extends Name<String>>, CommunicationGroupServiceClient> communicationGroups =
       new HashMap<>();
 
+  /**
+   * @deprecated in 0.12. Use Tang to obtain an instance of this instead.
+   */
+  @Deprecated
   @Inject
   public GroupCommClientImpl(
       @Parameter(SerializedGroupConfigs.class) final Set<String> groupConfigs,
@@ -66,6 +76,38 @@ public class GroupCommClientImpl implements GroupCommClient {
         injector.bindVolatileParameter(TaskConfigurationOptions.Identifier.class, taskId);
         injector.bindVolatileInstance(GroupCommNetworkHandler.class, groupCommNetworkHandler);
         injector.bindVolatileInstance(NetworkService.class, netService);
+
+        final CommunicationGroupServiceClient commGroupClient =
+            injector.getInstance(CommunicationGroupServiceClient.class);
+
+        this.communicationGroups.put(commGroupClient.getName(), commGroupClient);
+
+      } catch (final InjectionException | IOException e) {
+        throw new RuntimeException("Unable to deserialize operator config", e);
+      }
+    }
+  }
+
+  @Inject
+  private GroupCommClientImpl(
+      @Parameter(NetConnServiceConfigured.class) final boolean netConnServiceConfigured,
+      @Parameter(NetworkConnectionServiceIdFactory.class) final IdentifierFactory idfac,
+      @Parameter(SerializedGroupConfigs.class) final Set<String> groupConfigs,
+      @Parameter(TaskConfigurationOptions.Identifier.class) final String taskId,
+      final GroupCommNetworkHandler groupCommNetworkHandler,
+      final NetworkConnectionService netConnService,
+      final ConfigurationSerializer configSerializer) {
+    LOG.log(Level.FINEST, "GroupCommHandler-{0}", groupCommNetworkHandler);
+
+    for (final String groupConfigStr : groupConfigs) {
+      try {
+        final Configuration groupConfig = configSerializer.fromString(groupConfigStr);
+
+        final Injector injector = Tang.Factory.getTang().newInjector(groupConfig);
+        injector.bindVolatileParameter(TaskConfigurationOptions.Identifier.class, taskId);
+        injector.bindVolatileInstance(GroupCommNetworkHandler.class, groupCommNetworkHandler);
+        injector.bindVolatileInstance(ConnectionFactory.class,
+            netConnService.getConnectionFactory(idfac.getNewInstance(GroupCommDriverImpl.GROUP_COMM_NCS_ID)));
 
         final CommunicationGroupServiceClient commGroupClient =
             injector.getInstance(CommunicationGroupServiceClient.class);

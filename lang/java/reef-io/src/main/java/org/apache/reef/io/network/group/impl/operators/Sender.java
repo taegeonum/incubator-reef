@@ -20,8 +20,8 @@ package org.apache.reef.io.network.group.impl.operators;
 
 import org.apache.reef.exception.evaluator.NetworkException;
 import org.apache.reef.io.network.Connection;
+import org.apache.reef.io.network.ConnectionFactory;
 import org.apache.reef.io.network.group.api.operators.AbstractGroupCommOperator;
-import org.apache.reef.io.network.impl.NetworkService;
 import org.apache.reef.io.network.group.impl.GroupCommunicationMessage;
 import org.apache.reef.io.network.util.StringIdentifierFactory;
 import org.apache.reef.wake.Identifier;
@@ -34,11 +34,11 @@ public class Sender extends AbstractGroupCommOperator {
 
   private static final Logger LOG = Logger.getLogger(Sender.class.getName());
 
-  private final NetworkService<GroupCommunicationMessage> netService;
+  private final ConnectionFactory<GroupCommunicationMessage> connFactory;
   private final IdentifierFactory idFac = new StringIdentifierFactory();
 
-  public Sender(final NetworkService<GroupCommunicationMessage> netService) {
-    this.netService = netService;
+  public Sender(final ConnectionFactory<GroupCommunicationMessage> connFactory) {
+    this.connFactory = connFactory;
   }
 
   public void send(final GroupCommunicationMessage msg) throws NetworkException {
@@ -51,7 +51,7 @@ public class Sender extends AbstractGroupCommOperator {
   public void send(final GroupCommunicationMessage msg, final String dest) throws NetworkException {
     LOG.entering("Sender", "send", new Object[]{msg, dest});
     final Identifier destId = idFac.getNewInstance(dest);
-    final Connection<GroupCommunicationMessage> link = netService.newConnection(destId);
+    final Connection<GroupCommunicationMessage> link = connFactory.newConnection(destId);
     link.open();
     link.write(msg);
     LOG.exiting("Sender", "send", Arrays.toString(new Object[]{msg, dest}));

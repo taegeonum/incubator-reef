@@ -26,6 +26,7 @@ import org.apache.reef.driver.parameters.TaskRunningHandlers;
 import org.apache.reef.driver.task.FailedTask;
 import org.apache.reef.driver.task.RunningTask;
 import org.apache.reef.io.network.group.api.driver.GroupCommServiceDriver;
+import org.apache.reef.io.network.group.impl.config.parameters.NetConnServiceConfigured;
 import org.apache.reef.io.network.group.impl.config.parameters.TreeTopologyFanOut;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.JavaConfigurationBuilder;
@@ -50,6 +51,10 @@ public class GroupCommService {
 
   private final GroupCommServiceDriver groupCommDriver;
 
+  /**
+   * @deprecated in 0.12. Use Tang to obtain an instance of this instead.
+   */
+  @Deprecated
   @Inject
   public GroupCommService(final GroupCommServiceDriver groupCommDriver) {
     this.groupCommDriver = groupCommDriver;
@@ -62,6 +67,7 @@ public class GroupCommService {
     jcb.bindSetEntry(ServiceTaskFailedHandlers.class, FailedTaskHandler.class);
     jcb.bindSetEntry(ServiceEvaluatorFailedHandlers.class, FailedEvaluatorHandler.class);
     jcb.bindNamedParameter(EvaluatorDispatcherThreads.class, "1");
+    jcb.bindNamedParameter(NetConnServiceConfigured.class, Boolean.toString(true));
     final Configuration retVal = jcb.build();
     LOG.exiting("GroupCommService", "getConfiguration", CONF_SER.toString(retVal));
     return retVal;
