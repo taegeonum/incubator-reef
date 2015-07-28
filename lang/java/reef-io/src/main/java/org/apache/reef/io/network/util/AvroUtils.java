@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.reef.io.network.naming.serialization;
+package org.apache.reef.io.network.util;
 
 import org.apache.avro.io.*;
 import org.apache.avro.specific.SpecificDatumReader;
@@ -28,7 +28,7 @@ import java.io.IOException;
 /**
  * Utilities for AVRO.
  */
-final class AvroUtils {
+public final class AvroUtils {
 
   private AvroUtils() {
   }
@@ -41,7 +41,7 @@ final class AvroUtils {
    * @param <T>
    * @return
    */
-  static <T> byte[] toBytes(T avroObject, Class<T> theClass) {
+  public static <T> byte[] toBytes(T avroObject, Class<T> theClass) {
     final DatumWriter<T> datumWriter = new SpecificDatumWriter<>(theClass);
     final byte[] theBytes;
     try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -56,7 +56,7 @@ final class AvroUtils {
     return theBytes;
   }
 
-  static <T> T fromBytes(final byte[] theBytes, final Class<T> theClass) {
+  public static <T> T fromBytes(final byte[] theBytes, final Class<T> theClass) {
     final BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(theBytes, null);
     final SpecificDatumReader<T> reader = new SpecificDatumReader<>(theClass);
     try {

@@ -19,6 +19,7 @@
 package org.apache.reef.io.network.naming.serialization;
 
 import org.apache.reef.io.network.naming.avro.AvroNamingUnRegisterRequest;
+import org.apache.reef.io.network.util.AvroUtils;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.Codec;
 

@@ -42,6 +42,7 @@ final class NetworkConnectionFactory<T> implements ConnectionFactory<T> {
   private final EventHandler<Message<T>> eventHandler;
   private final LinkListener<Message<T>> eventListener;
   private final NetworkConnectionServiceImpl networkService;
+  private final boolean isStreamingCodec;
 
   NetworkConnectionFactory(
       final NetworkConnectionServiceImpl networkService,
@@ -55,6 +56,7 @@ final class NetworkConnectionFactory<T> implements ConnectionFactory<T> {
     this.eventCodec = eventCodec;
     this.eventHandler = eventHandler;
     this.eventListener = eventListener;
+    this.isStreamingCodec = eventCodec instanceof StreamingCodec;
   }
 
   /**
@@ -99,5 +101,9 @@ final class NetworkConnectionFactory<T> implements ConnectionFactory<T> {
 
   Codec<T> getCodec() {
     return eventCodec;
+  }
+
+  boolean getIsStreamingCodec() {
+    return this.isStreamingCodec;
   }
 }
