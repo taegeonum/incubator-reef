@@ -31,6 +31,7 @@ import org.apache.reef.wake.EStage;
 import org.apache.reef.wake.EventHandler;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
+import org.apache.reef.wake.impl.LoggingEventHandler;
 import org.apache.reef.wake.impl.SingleThreadStage;
 import org.apache.reef.wake.remote.Codec;
 import org.apache.reef.wake.remote.impl.TransportEvent;
@@ -104,7 +105,8 @@ public final class NetworkConnectionServiceImpl implements NetworkConnectionServ
     final EventHandler<TransportEvent> recvHandler =
         new NetworkConnectionServiceReceiveHandler(connFactoryMap, nsCodec);
     this.nameResolver = nameResolver;
-    this.transport = transportFactory.newInstance(nsPort, recvHandler, recvHandler,
+    this.transport = transportFactory.newInstance(nsPort,
+        new LoggingEventHandler<TransportEvent>(), recvHandler,
         new NetworkConnectionServiceExceptionHandler());
 
     this.nameServiceRegisteringStage = new SingleThreadStage<>(

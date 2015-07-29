@@ -25,7 +25,6 @@ import org.apache.reef.io.network.NetworkConnectionService;
 import org.apache.reef.io.network.impl.config.NetworkConnectionServiceIdFactory;
 import org.apache.reef.io.network.naming.NameResolver;
 import org.apache.reef.io.network.naming.NameResolverConfiguration;
-import org.apache.reef.io.network.naming.NameServer;
 import org.apache.reef.tang.Configuration;
 import org.apache.reef.tang.Injector;
 import org.apache.reef.tang.Tang;
@@ -52,22 +51,23 @@ public final class NetworkMessagingTestService implements AutoCloseable {
   private final NetworkConnectionService senderNetworkConnService;
   private final String receiver;
   private final String sender;
-  private final NameServer nameServer;
   private final NameResolver receiverResolver;
   private final NameResolver senderResolver;
 
-  public NetworkMessagingTestService(final String localAddress) throws InjectionException {
+  public NetworkMessagingTestService(final int port,
+                                     final String localAddress,
+                                     final String receiverId,
+                                     final String senderId) throws InjectionException {
     // name server
     final Injector injector = Tang.Factory.getTang().newInjector();
-    this.nameServer = injector.getInstance(NameServer.class);
     final Configuration netConf = NameResolverConfiguration.CONF
         .set(NameResolverConfiguration.NAME_SERVER_HOSTNAME, localAddress)
-        .set(NameResolverConfiguration.NAME_SERVICE_PORT, nameServer.getPort())
+        .set(NameResolverConfiguration.NAME_SERVICE_PORT, port)
         .build();
 
     LOG.log(Level.FINEST, "=== Test network connection service receiver start");
     // network service for receiver
-    this.receiver = "receiver";
+    this.receiver = receiverId;
     final Injector injectorReceiver = injector.forkInjector(netConf);
     this.receiverNetworkConnService = injectorReceiver.getInstance(NetworkConnectionService.class);
     this.receiverResolver = injectorReceiver.getInstance(NameResolver.class);
@@ -75,7 +75,7 @@ public final class NetworkMessagingTestService implements AutoCloseable {
     this.receiverNetworkConnService.registerId(this.factory.getNewInstance(receiver));
 
     // network service for sender
-    this.sender = "sender";
+    this.sender = senderId;
     LOG.log(Level.FINEST, "=== Test network connection service sender start");
     final Injector injectorSender = injector.forkInjector(netConf);
     senderNetworkConnService = injectorSender.getInstance(NetworkConnectionService.class);
@@ -89,7 +89,7 @@ public final class NetworkMessagingTestService implements AutoCloseable {
     receiverNetworkConnService.registerConnectionFactory(connFactoryId, codec,
         new MessageHandler<T>(monitor, numMessages), new TestListener<T>());
     senderNetworkConnService.registerConnectionFactory(connFactoryId, codec,
-        new MessageHandler<T>(monitor, numMessages), new TestListener<T>());
+        new MessageHandler<T>(null, 0), new TestListener<T>());
   }
 
   public <T> Connection<T> getConnectionFromSenderToReceiver(final Identifier connFactoryId) {
@@ -100,7 +100,6 @@ public final class NetworkMessagingTestService implements AutoCloseable {
   public void close() throws Exception {
     senderNetworkConnService.close();
     receiverNetworkConnService.close();
-    nameServer.close();
     receiverResolver.close();
     senderResolver.close();
   }

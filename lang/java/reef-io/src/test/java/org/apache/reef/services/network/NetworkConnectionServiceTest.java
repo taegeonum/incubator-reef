@@ -20,9 +20,13 @@ package org.apache.reef.services.network;
 
 import org.apache.reef.exception.evaluator.NetworkException;
 import org.apache.reef.io.network.Connection;
+import org.apache.reef.io.network.naming.NameServer;
+import org.apache.reef.io.network.naming.NameServerParameters;
 import org.apache.reef.io.network.util.StringCodec;
 import org.apache.reef.io.network.util.StringIdentifierFactory;
 import org.apache.reef.services.network.util.*;
+import org.apache.reef.tang.Injector;
+import org.apache.reef.tang.Tang;
 import org.apache.reef.tang.exceptions.InjectionException;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
@@ -64,20 +68,30 @@ public class NetworkConnectionServiceTest {
   private void runMessagingNetworkConnectionService(Codec<String> codec) throws Exception {
     final int numMessages = 2000;
     final Monitor monitor = new Monitor();
-    try (final NetworkMessagingTestService messagingTestService = new NetworkMessagingTestService(localAddress)) {
-      messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
+    final IdentifierFactory factory = new StringIdentifierFactory();
 
-      try (final Connection<String> conn = messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
-        try {
-          conn.open();
-          for (int count = 0; count < numMessages; ++count) {
-            // send messages to the receiver.
-            conn.write("hello" + count);
+    final Injector injector = Tang.Factory.getTang().newInjector();
+    injector.bindVolatileParameter(NameServerParameters.NameServerIdentifierFactory.class, factory);
+    injector.bindVolatileInstance(LocalAddressProvider.class, this.localAddressProvider);
+
+    try (final NameServer server = injector.getInstance(NameServer.class)) {
+      try (final NetworkMessagingTestService messagingTestService =
+               new NetworkMessagingTestService(server.getPort(), localAddress, "receiver", "sender")) {
+        messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
+
+        try (final Connection<String> conn =
+                 messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
+          try {
+            conn.open();
+            for (int count = 0; count < numMessages; ++count) {
+              // send messages to the receiver.
+              conn.write("hello" + count);
+            }
+            monitor.mwait();
+          } catch (NetworkException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
           }
-          monitor.mwait();
-        } catch (NetworkException e) {
-          e.printStackTrace();
-          throw new RuntimeException(e);
         }
       }
     }
@@ -87,7 +101,7 @@ public class NetworkConnectionServiceTest {
    * NetworkConnectionService messaging test.
    */
   @Test
-  public void testMessagingNetworkConnectionService() throws Exception {
+  public void testMessagingNetworkService() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runMessagingNetworkConnectionService(new StringCodec());
   }
@@ -95,7 +109,7 @@ public class NetworkConnectionServiceTest {
   /**
    * NetworkConnectionService streaming messaging test.
    */
-  @Test
+  //@Test
   public void testStreamingMessagingNetworkConnectionService() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runMessagingNetworkConnectionService(new StreamingStringCodec());
@@ -104,63 +118,72 @@ public class NetworkConnectionServiceTest {
   public void runNetworkConnServiceWithMultipleConnFactories(Codec<String> stringCodec, Codec<Integer> integerCodec)
       throws Exception {
     final ExecutorService executor = Executors.newFixedThreadPool(5);
+    final IdentifierFactory factory = new StringIdentifierFactory();
 
-    final int groupcommMessages = 1000;
-    final Monitor monitor = new Monitor();
-    try (final NetworkMessagingTestService messagingTestService = new NetworkMessagingTestService(localAddress)) {
+    final Injector injector = Tang.Factory.getTang().newInjector();
+    injector.bindVolatileParameter(NameServerParameters.NameServerIdentifierFactory.class, factory);
+    injector.bindVolatileInstance(LocalAddressProvider.class, this.localAddressProvider);
 
-      messagingTestService.registerTestConnectionFactory(groupCommClientId, groupcommMessages, monitor, stringCodec);
+    try (final NameServer server = injector.getInstance(NameServer.class)) {
+      final int groupcommMessages = 1000;
+      final Monitor monitor = new Monitor();
+      try (final NetworkMessagingTestService messagingTestService =
+               new NetworkMessagingTestService(server.getPort(), localAddress, "receiver", "sender")) {
+        messagingTestService.registerTestConnectionFactory(groupCommClientId,
+            groupcommMessages, monitor, stringCodec);
 
-      final int shuffleMessages = 2000;
-      final Monitor monitor2 = new Monitor();
-      messagingTestService.registerTestConnectionFactory(shuffleClientId, shuffleMessages, monitor2, integerCodec);
+        final int shuffleMessages = 2000;
+        final Monitor monitor2 = new Monitor();
+        messagingTestService.registerTestConnectionFactory(shuffleClientId,
+            shuffleMessages, monitor2, integerCodec);
 
-      executor.submit(new Runnable() {
-        @Override
-        public void run() {
-          try (final Connection<String> conn =
-                   messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
-            conn.open();
-            for (int count = 0; count < groupcommMessages; ++count) {
-              // send messages to the receiver.
-              conn.write("hello" + count);
+        executor.submit(new Runnable() {
+          @Override
+          public void run() {
+            try (final Connection<String> conn =
+                     messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
+              conn.open();
+              for (int count = 0; count < groupcommMessages; ++count) {
+                // send messages to the receiver.
+                conn.write("hello" + count);
+              }
+              monitor.mwait();
+            } catch (Exception e) {
+              e.printStackTrace();
+              throw new RuntimeException(e);
             }
-            monitor.mwait();
-          } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
           }
-        }
-      });
+        });
 
-      executor.submit(new Runnable() {
-        @Override
-        public void run() {
-          try (final Connection<Integer> conn =
-                   messagingTestService.getConnectionFromSenderToReceiver(shuffleClientId)) {
-            conn.open();
-            for (int count = 0; count < shuffleMessages; ++count) {
-              // send messages to the receiver.
-              conn.write(count);
+        executor.submit(new Runnable() {
+          @Override
+          public void run() {
+            try (final Connection<Integer> conn =
+                     messagingTestService.getConnectionFromSenderToReceiver(shuffleClientId)) {
+              conn.open();
+              for (int count = 0; count < shuffleMessages; ++count) {
+                // send messages to the receiver.
+                conn.write(count);
+              }
+              monitor2.mwait();
+            } catch (Exception e) {
+              e.printStackTrace();
+              throw new RuntimeException(e);
             }
-            monitor2.mwait();
-          } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
           }
-        }
-      });
+        });
 
-      monitor.mwait();
-      monitor2.mwait();
-      executor.shutdown();
+        monitor.mwait();
+        monitor2.mwait();
+        executor.shutdown();
+      }
     }
   }
 
   /**
    * Test NetworkService registering multiple connection factories.
    */
-  @Test
+  //@Test
   public void testMultipleConnectionFactoriesTest() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runNetworkConnServiceWithMultipleConnFactories(new StringCodec(), new ObjectSerializableCodec<Integer>());
@@ -169,7 +192,7 @@ public class NetworkConnectionServiceTest {
   /**
    * Test NetworkService registering multiple connection factories with Streamingcodec.
    */
-  @Test
+  //@Test
   public void testMultipleConnectionFactoriesStreamingTest() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runNetworkConnServiceWithMultipleConnFactories(new StreamingStringCodec(), new StreamingIntegerCodec());
@@ -179,190 +202,24 @@ public class NetworkConnectionServiceTest {
    * NetworkService messaging rate benchmark.
    */
   @Test
-  public void testMessagingNetworkConnServiceRate() throws Exception {
+  public void testMessagingNetworkServiceRate() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     final int[] messageSizes = {1, 16, 32, 64, 512, 64 * 1024, 1024 * 1024};
+    final IdentifierFactory factory = new StringIdentifierFactory();
 
-    for (int size : messageSizes) {
-      final int numMessages = 300000 / (Math.max(1, size / 512));
-      final Monitor monitor = new Monitor();
-      final Codec<String> codec = new StringCodec();
-      try (final NetworkMessagingTestService messagingTestService = new NetworkMessagingTestService(localAddress)) {
-        messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
+    final Injector injector = Tang.Factory.getTang().newInjector();
+    injector.bindVolatileParameter(NameServerParameters.NameServerIdentifierFactory.class, factory);
+    injector.bindVolatileInstance(LocalAddressProvider.class, this.localAddressProvider);
 
-        // build the message
-        final StringBuilder msb = new StringBuilder();
-        for (int i = 0; i < size; i++) {
-          msb.append("1");
-        }
-        final String message = msb.toString();
+    try (final NameServer server = injector.getInstance(NameServer.class)) {
+      for (int size : messageSizes) {
+        final int numMessages = 300000 / (Math.max(1, size / 512));
+        final Monitor monitor = new Monitor();
+        final Codec<String> codec = new StringCodec();
 
-        try (final Connection<String> conn =
-                 messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
-
-          long start = System.currentTimeMillis();
-          try {
-            conn.open();
-            for (int count = 0; count < numMessages; ++count) {
-              // send messages to the receiver.
-              conn.write(message);
-            }
-            monitor.mwait();
-          } catch (NetworkException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-          }
-          final long end = System.currentTimeMillis();
-
-          final double runtime = ((double) end - start) / 1000;
-          LOG.log(Level.INFO, "size: " + size + "; messages/s: " + numMessages / runtime +
-              " bandwidth(bytes/s): " + ((double) numMessages * 2 * size) / runtime); // x2 for unicode chars
-        }
-      }
-    }
-  }
-
-  /**
-   * NetworkService messaging rate benchmark.
-   */
-  @Test
-  public void testMessagingNetworkConnServiceRateDisjoint() throws Exception {
-    LOG.log(Level.FINEST, name.getMethodName());
-    final BlockingQueue<Object> barrier = new LinkedBlockingQueue<Object>();
-
-    final int numThreads = 4;
-    final int size = 2000;
-    final int numMessages = 300000 / (Math.max(1, size / 512));
-    final int totalNumMessages = numMessages * numThreads;
-
-    final ExecutorService e = Executors.newCachedThreadPool();
-    for (int t = 0; t < numThreads; t++) {
-      final int tt = t;
-
-      e.submit(new Runnable() {
-        public void run() {
-          try (final NetworkMessagingTestService messagingTestService = new NetworkMessagingTestService(localAddress)) {
-            final Monitor monitor = new Monitor();
-            final Codec<String> codec = new StringCodec();
-
-            messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
-            try (final Connection<String> conn =
-                     messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
-
-              // build the message
-              final StringBuilder msb = new StringBuilder();
-              for (int i = 0; i < size; i++) {
-                msb.append("1");
-              }
-              final String message = msb.toString();
-
-              try {
-                conn.open();
-                for (int count = 0; count < numMessages; ++count) {
-                  // send messages to the receiver.
-                  conn.write(message);
-                }
-                monitor.mwait();
-              } catch (NetworkException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-              }
-            }
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      });
-    }
-
-    // start and time
-    final long start = System.currentTimeMillis();
-    final Object ignore = new Object();
-    for (int i = 0; i < numThreads; i++) {
-      barrier.add(ignore);
-    }
-    e.shutdown();
-    e.awaitTermination(100, TimeUnit.SECONDS);
-    final long end = System.currentTimeMillis();
-    final double runtime = ((double) end - start) / 1000;
-    LOG.log(Level.INFO, "size: " + size + "; messages/s: " + totalNumMessages / runtime +
-        " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime); // x2 for unicode chars
-  }
-
-  @Test
-  public void testMultithreadedSharedConnMessagingNetworkConnServiceRate() throws Exception {
-    LOG.log(Level.FINEST, name.getMethodName());
-    final int[] messageSizes = {2000}; // {1,16,32,64,512,64*1024,1024*1024};
-
-    for (int size : messageSizes) {
-      final int numMessages = 300000 / (Math.max(1, size / 512));
-      final int numThreads = 2;
-      final int totalNumMessages = numMessages * numThreads;
-      final Monitor monitor = new Monitor();
-      final Codec<String> codec = new StringCodec();
-      try (final NetworkMessagingTestService messagingTestService = new NetworkMessagingTestService(localAddress)) {
-        messagingTestService.registerTestConnectionFactory(groupCommClientId, totalNumMessages, monitor, codec);
-
-        final ExecutorService e = Executors.newCachedThreadPool();
-
-        // build the message
-        final StringBuilder msb = new StringBuilder();
-        for (int i = 0; i < size; i++) {
-          msb.append("1");
-        }
-        final String message = msb.toString();
-        try (final Connection<String> conn =
-                 messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
-
-          final long start = System.currentTimeMillis();
-          for (int i = 0; i < numThreads; i++) {
-            e.submit(new Runnable() {
-              @Override
-              public void run() {
-
-                try {
-                  conn.open();
-                  for (int count = 0; count < numMessages; ++count) {
-                    // send messages to the receiver.
-                    conn.write(message);
-                  }
-                } catch (Exception e) {
-                  throw new RuntimeException(e);
-                }
-              }
-            });
-          }
-
-          e.shutdown();
-          e.awaitTermination(30, TimeUnit.SECONDS);
-          monitor.mwait();
-          final long end = System.currentTimeMillis();
-          final double runtime = ((double) end - start) / 1000;
-          LOG.log(Level.INFO, "size: " + size + "; messages/s: " + totalNumMessages / runtime + 
-              " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime); // x2 for unicode chars
-        }
-      }
-    }
-  }
-
-  /**
-   * NetworkService messaging rate benchmark.
-   */
-  @Test
-  public void testMessagingNetworkConnServiceBatchingRate() throws Exception {
-    LOG.log(Level.FINEST, name.getMethodName());
-
-    final int batchSize = 1024 * 1024;
-    final int[] messageSizes = {32, 64, 512};
-
-    for (int size : messageSizes) {
-      final int numMessages = 300 / (Math.max(1, size / 512));
-      final Monitor monitor = new Monitor();
-      final Codec<String> codec = new StringCodec();
-      try (final NetworkMessagingTestService messagingTestService = new NetworkMessagingTestService(localAddress)) {
-        messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
-        try (final Connection<String> conn =
-                 messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
+        try (final NetworkMessagingTestService messagingTestService =
+                 new NetworkMessagingTestService(server.getPort(), localAddress, "receiver", "sender")) {
+          messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
 
           // build the message
           final StringBuilder msb = new StringBuilder();
@@ -371,27 +228,229 @@ public class NetworkConnectionServiceTest {
           }
           final String message = msb.toString();
 
-          final long start = System.currentTimeMillis();
-          try {
-            for (int i = 0; i < numMessages; i++) {
-              final StringBuilder sb = new StringBuilder();
-              for (int j = 0; j < batchSize / size; j++) {
-                sb.append(message);
-              }
-              conn.open();
-              conn.write(sb.toString());
-            }
-            monitor.mwait();
-          } catch (NetworkException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-          }
+          try (final Connection<String> conn =
+                   messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
 
-          final long end = System.currentTimeMillis();
-          final double runtime = ((double) end - start) / 1000;
-          final long numAppMessages = numMessages * batchSize / size;
-          LOG.log(Level.INFO, "size: " + size + "; messages/s: " + numAppMessages / runtime +
-              " bandwidth(bytes/s): " + ((double) numAppMessages * 2 * size) / runtime); // x2 for unicode chars
+            long start = System.currentTimeMillis();
+            try {
+              conn.open();
+              for (int count = 0; count < numMessages; ++count) {
+                // send messages to the receiver.
+                conn.write(message);
+              }
+              monitor.mwait();
+            } catch (NetworkException e) {
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            }
+            final long end = System.currentTimeMillis();
+
+            final double runtime = ((double) end - start) / 1000;
+            LOG.log(Level.INFO, "size: " + size + "; messages/s: " + numMessages / runtime +
+                " bandwidth(bytes/s): " + ((double) numMessages * 2 * size) / runtime); // x2 for unicode chars
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * NetworkService messaging rate benchmark.
+   */
+  @Test
+  public void testMessagingNetworkServiceRateDisjoint() throws Exception {
+    LOG.log(Level.FINEST, name.getMethodName());
+    final BlockingQueue<Object> barrier = new LinkedBlockingQueue<Object>();
+
+    final int numThreads = 4;
+    final int size = 2000;
+    final int numMessages = 300000 / (Math.max(1, size / 512));
+    final int totalNumMessages = numMessages * numThreads;
+    final IdentifierFactory factory = new StringIdentifierFactory();
+
+    final Injector injector = Tang.Factory.getTang().newInjector();
+    injector.bindVolatileParameter(NameServerParameters.NameServerIdentifierFactory.class, factory);
+    injector.bindVolatileInstance(LocalAddressProvider.class, this.localAddressProvider);
+
+    final ExecutorService e = Executors.newCachedThreadPool();
+    try (final NameServer server = injector.getInstance(NameServer.class)) {
+      for (int t = 0; t < numThreads; t++) {
+        final int tt = t;
+        e.submit(new Runnable() {
+          public void run() {
+            try (final NetworkMessagingTestService messagingTestService =
+                     new NetworkMessagingTestService(server.getPort(), localAddress,
+                         "receiver" + tt, "sender" + tt)) {
+              final Monitor monitor = new Monitor();
+              // network service
+              final Codec<String> codec = new StringCodec();
+
+              messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
+              try (final Connection<String> conn =
+                       messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
+
+                // build the message
+                final StringBuilder msb = new StringBuilder();
+                for (int i = 0; i < size; i++) {
+                  msb.append("1");
+                }
+                final String message = msb.toString();
+
+                try {
+                  conn.open();
+                  for (int count = 0; count < numMessages; ++count) {
+                    // send messages to the receiver.
+                    conn.write(message);
+                  }
+                  monitor.mwait();
+                } catch (NetworkException e) {
+                  e.printStackTrace();
+                  throw new RuntimeException(e);
+                }
+              }
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+        });
+      }
+
+
+      // start and time
+      final long start = System.currentTimeMillis();
+      final Object ignore = new Object();
+      for (int i = 0; i < numThreads; i++) {
+        barrier.add(ignore);
+      }
+      e.shutdown();
+      e.awaitTermination(100, TimeUnit.SECONDS);
+
+      final long end = System.currentTimeMillis();
+      final double runtime = ((double) end - start) / 1000;
+      LOG.log(Level.INFO, "size: " + size + "; messages/s: " + totalNumMessages / runtime +
+          " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime); // x2 for unicode chars
+    }
+  }
+
+  @Test
+  public void testMultithreadedSharedConnMessagingNetworkServiceRate() throws Exception {
+    LOG.log(Level.FINEST, name.getMethodName());
+    final int[] messageSizes = {2000}; // {1,16,32,64,512,64*1024,1024*1024};
+    final IdentifierFactory factory = new StringIdentifierFactory();
+
+    final Injector injector = Tang.Factory.getTang().newInjector();
+    injector.bindVolatileParameter(NameServerParameters.NameServerIdentifierFactory.class, factory);
+    injector.bindVolatileInstance(LocalAddressProvider.class, this.localAddressProvider);
+
+    try (final NameServer server = injector.getInstance(NameServer.class)) {
+      for (int size : messageSizes) {
+        final int numMessages = 300000 / (Math.max(1, size / 512));
+        final int numThreads = 2;
+        final int totalNumMessages = numMessages * numThreads;
+        final Monitor monitor = new Monitor();
+        final Codec<String> codec = new StringCodec();
+        try (final NetworkMessagingTestService messagingTestService =
+                 new NetworkMessagingTestService(server.getPort(), localAddress, "receiver", "sender")) {
+          messagingTestService.registerTestConnectionFactory(groupCommClientId, totalNumMessages, monitor, codec);
+
+          final ExecutorService e = Executors.newCachedThreadPool();
+
+          // build the message
+          final StringBuilder msb = new StringBuilder();
+          for (int i = 0; i < size; i++) {
+            msb.append("1");
+          }
+          final String message = msb.toString();
+          try (final Connection<String> conn =
+                   messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
+
+            final long start = System.currentTimeMillis();
+            for (int i = 0; i < numThreads; i++) {
+              e.submit(new Runnable() {
+                @Override
+                public void run() {
+
+                  try {
+                    conn.open();
+                    for (int count = 0; count < numMessages; ++count) {
+                      // send messages to the receiver.
+                      conn.write(message);
+                    }
+                  } catch (Exception e) {
+                    throw new RuntimeException(e);
+                  }
+                }
+              });
+            }
+
+            e.shutdown();
+            e.awaitTermination(30, TimeUnit.SECONDS);
+            monitor.mwait();
+            final long end = System.currentTimeMillis();
+            final double runtime = ((double) end - start) / 1000;
+            LOG.log(Level.INFO, "size: " + size + "; messages/s: " + totalNumMessages / runtime +
+                " bandwidth(bytes/s): " + ((double) totalNumMessages * 2 * size) / runtime); // x2 for unicode chars
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * NetworkService messaging rate benchmark.
+   */
+  @Test
+  public void testMessagingNetworkServiceBatchingRate() throws Exception {
+    LOG.log(Level.FINEST, name.getMethodName());
+    final IdentifierFactory factory = new StringIdentifierFactory();
+
+    final Injector injector = Tang.Factory.getTang().newInjector();
+    injector.bindVolatileParameter(NameServerParameters.NameServerIdentifierFactory.class, factory);
+    injector.bindVolatileInstance(LocalAddressProvider.class, this.localAddressProvider);
+
+    try (final NameServer server = injector.getInstance(NameServer.class)) {
+      final int batchSize = 1024 * 1024;
+      final int[] messageSizes = {32, 64, 512};
+
+      for (int size : messageSizes) {
+        final int numMessages = 300 / (Math.max(1, size / 512));
+        final Monitor monitor = new Monitor();
+        final Codec<String> codec = new StringCodec();
+        try (final NetworkMessagingTestService messagingTestService =
+                 new NetworkMessagingTestService(server.getPort(), localAddress, "receiver", "sender")) {
+          messagingTestService.registerTestConnectionFactory(groupCommClientId, numMessages, monitor, codec);
+          try (final Connection<String> conn =
+                   messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
+
+            // build the message
+            final StringBuilder msb = new StringBuilder();
+            for (int i = 0; i < size; i++) {
+              msb.append("1");
+            }
+            final String message = msb.toString();
+
+            final long start = System.currentTimeMillis();
+            try {
+              for (int i = 0; i < numMessages; i++) {
+                final StringBuilder sb = new StringBuilder();
+                for (int j = 0; j < batchSize / size; j++) {
+                  sb.append(message);
+                }
+                conn.open();
+                conn.write(sb.toString());
+              }
+              monitor.mwait();
+            } catch (NetworkException e) {
+              e.printStackTrace();
+              throw new RuntimeException(e);
+            }
+
+            final long end = System.currentTimeMillis();
+            final double runtime = ((double) end - start) / 1000;
+            final long numAppMessages = numMessages * batchSize / size;
+            LOG.log(Level.INFO, "size: " + size + "; messages/s: " + numAppMessages / runtime +
+                " bandwidth(bytes/s): " + ((double) numAppMessages * 2 * size) / runtime); // x2 for unicode chars
+          }
         }
       }
     }
