@@ -75,8 +75,8 @@ final class NetworkConnectionFactory<T> implements ConnectionFactory<T> {
     return connection;
   }
 
-  <T> Link<NetworkConnectionServiceMessage<T>> openLink(final Identifier remoteId) throws NetworkException {
-    return networkService.openLink(remoteId);
+  Link<NetworkConnectionServiceMessage<T>> openLink(final Identifier remoteId) throws NetworkException {
+    return networkService.openLink(remoteId, eventListener);
   }
 
   String getConnectionFactoryId() {
@@ -103,7 +103,7 @@ final class NetworkConnectionFactory<T> implements ConnectionFactory<T> {
     return eventCodec;
   }
 
-  boolean getIsStreamingCodec() {
+  boolean hasStreamingCodec() {
     return this.isStreamingCodec;
   }
 }

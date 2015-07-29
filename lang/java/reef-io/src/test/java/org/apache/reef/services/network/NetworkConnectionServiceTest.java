@@ -101,7 +101,7 @@ public class NetworkConnectionServiceTest {
    * NetworkConnectionService messaging test.
    */
   @Test
-  public void testMessagingNetworkService() throws Exception {
+  public void testMessagingNetworkConnectionService() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runMessagingNetworkConnectionService(new StringCodec());
   }
@@ -109,7 +109,7 @@ public class NetworkConnectionServiceTest {
   /**
    * NetworkConnectionService streaming messaging test.
    */
-  //@Test
+  @Test
   public void testStreamingMessagingNetworkConnectionService() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runMessagingNetworkConnectionService(new StreamingStringCodec());
@@ -181,28 +181,28 @@ public class NetworkConnectionServiceTest {
   }
 
   /**
-   * Test NetworkService registering multiple connection factories.
+   * Test NetworkConnectionService registering multiple connection factories.
    */
-  //@Test
+  @Test
   public void testMultipleConnectionFactoriesTest() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runNetworkConnServiceWithMultipleConnFactories(new StringCodec(), new ObjectSerializableCodec<Integer>());
   }
 
   /**
-   * Test NetworkService registering multiple connection factories with Streamingcodec.
+   * Test NetworkConnectionService registering multiple connection factories with Streamingcodec.
    */
-  //@Test
+  @Test
   public void testMultipleConnectionFactoriesStreamingTest() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     runNetworkConnServiceWithMultipleConnFactories(new StreamingStringCodec(), new StreamingIntegerCodec());
   }
 
   /**
-   * NetworkService messaging rate benchmark.
+   * NetworkConnectionService messaging rate benchmark.
    */
   @Test
-  public void testMessagingNetworkServiceRate() throws Exception {
+  public void testMessagingNetworkConnectionServiceRate() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     final int[] messageSizes = {1, 16, 32, 64, 512, 64 * 1024, 1024 * 1024};
     final IdentifierFactory factory = new StringIdentifierFactory();
@@ -228,14 +228,13 @@ public class NetworkConnectionServiceTest {
           }
           final String message = msb.toString();
 
+          final long start = System.currentTimeMillis();
           try (final Connection<String> conn =
                    messagingTestService.getConnectionFromSenderToReceiver(groupCommClientId)) {
-
-            long start = System.currentTimeMillis();
             try {
-              conn.open();
               for (int count = 0; count < numMessages; ++count) {
                 // send messages to the receiver.
+                conn.open();
                 conn.write(message);
               }
               monitor.mwait();
@@ -255,10 +254,10 @@ public class NetworkConnectionServiceTest {
   }
 
   /**
-   * NetworkService messaging rate benchmark.
+   * NetworkConnectionService messaging rate benchmark.
    */
   @Test
-  public void testMessagingNetworkServiceRateDisjoint() throws Exception {
+  public void testMessagingNetworkConnectionServiceRateDisjoint() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     final BlockingQueue<Object> barrier = new LinkedBlockingQueue<Object>();
 
@@ -297,9 +296,9 @@ public class NetworkConnectionServiceTest {
                 final String message = msb.toString();
 
                 try {
-                  conn.open();
                   for (int count = 0; count < numMessages; ++count) {
                     // send messages to the receiver.
+                    conn.open();
                     conn.write(message);
                   }
                   monitor.mwait();
@@ -333,7 +332,7 @@ public class NetworkConnectionServiceTest {
   }
 
   @Test
-  public void testMultithreadedSharedConnMessagingNetworkServiceRate() throws Exception {
+  public void testMultithreadedSharedConnMessagingNetworkConnectionServiceRate() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     final int[] messageSizes = {2000}; // {1,16,32,64,512,64*1024,1024*1024};
     final IdentifierFactory factory = new StringIdentifierFactory();
@@ -397,10 +396,10 @@ public class NetworkConnectionServiceTest {
   }
 
   /**
-   * NetworkService messaging rate benchmark.
+   * NetworkConnectionService messaging rate benchmark.
    */
   @Test
-  public void testMessagingNetworkServiceBatchingRate() throws Exception {
+  public void testMessagingNetworkConnectionServiceBatchingRate() throws Exception {
     LOG.log(Level.FINEST, name.getMethodName());
     final IdentifierFactory factory = new StringIdentifierFactory();
 

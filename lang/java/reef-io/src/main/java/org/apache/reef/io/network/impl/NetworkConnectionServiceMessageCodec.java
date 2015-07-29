@@ -62,7 +62,7 @@ final class NetworkConnectionServiceMessageCodec implements Codec<NetworkConnect
   public byte[] encode(final NetworkConnectionServiceMessage obj) {
     final NetworkConnectionFactory connFactory = connFactoryMap.get(obj.getConnectionFactoryId());
     final Codec codec = connFactory.getCodec();
-    boolean isStreamingCodec = connFactory.getIsStreamingCodec();
+    boolean isStreamingCodec = connFactory.hasStreamingCodec();
     final AvroNetworkConnectionServiceMessage.Builder mBuilder =
         AvroNetworkConnectionServiceMessage.newBuilder()
             .setConnectionFactoryId(obj.getConnectionFactoryId())
@@ -108,7 +108,7 @@ final class NetworkConnectionServiceMessageCodec implements Codec<NetworkConnect
     final List list = new ArrayList(size);
     final NetworkConnectionFactory connFactory = connFactoryMap.get(connFactoryId);
     final Codec codec = connFactory.getCodec();
-    final boolean isStreamingCodec = connFactory.getIsStreamingCodec();
+    final boolean isStreamingCodec = connFactory.hasStreamingCodec();
     final List<ByteBuffer> byteBuffers = avroNetworkConnectionServiceMessage.getDataList();
 
     if (isStreamingCodec) {

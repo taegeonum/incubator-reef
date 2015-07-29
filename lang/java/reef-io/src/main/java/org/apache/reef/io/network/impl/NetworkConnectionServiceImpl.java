@@ -80,10 +80,6 @@ public final class NetworkConnectionServiceImpl implements NetworkConnectionServ
    */
   private final Codec<NetworkConnectionServiceMessage> nsCodec;
   /**
-   * A network connection service link listener.
-   */
-  private final LinkListener<NetworkConnectionServiceMessage> nsLinkListener;
-  /**
    * A stage registering identifiers to nameServer.
    */
   private final EStage<Tuple<Identifier, InetSocketAddress>> nameServiceRegisteringStage;
@@ -101,7 +97,6 @@ public final class NetworkConnectionServiceImpl implements NetworkConnectionServ
     this.idFactory = idFactory;
     this.connFactoryMap = new ConcurrentHashMap<>();
     this.nsCodec = new NetworkConnectionServiceMessageCodec(idFactory, connFactoryMap);
-    this.nsLinkListener = new NetworkConnectionServiceLinkListener(connFactoryMap);
     final EventHandler<TransportEvent> recvHandler =
         new NetworkConnectionServiceReceiveHandler(connFactoryMap, nsCodec);
     this.nameResolver = nameResolver;
@@ -190,15 +185,17 @@ public final class NetworkConnectionServiceImpl implements NetworkConnectionServ
   /**
    * Open a channel for destination identifier of NetworkConnectionService.
    * @param destId
+   * @param linkListener
    * @throws NetworkException
    */
-  <T> Link<NetworkConnectionServiceMessage<T>> openLink(final Identifier destId) throws NetworkException {
+  <T> Link<NetworkConnectionServiceMessage<T>> openLink(
+      final Identifier destId, final LinkListener<Message<T>> linkListener) throws NetworkException {
     try {
       final SocketAddress address = nameResolver.lookup(destId);
       if (address == null) {
         throw new NetworkException("Lookup " + destId + " is null");
       }
-      return transport.open(address, nsCodec, nsLinkListener);
+      return transport.open(address, nsCodec, linkListener);
     } catch(Exception e) {
       e.printStackTrace();
       throw new NetworkException(e);
