@@ -21,7 +21,8 @@ package org.apache.reef.io.network.impl;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.apache.reef.io.network.exception.NetworkRuntimeException;
-import org.apache.reef.io.network.proto.ReefNetworkServiceProtos;
+import org.apache.reef.io.network.proto.ReefNetworkServiceProtos.NSMessagePBuf;
+import org.apache.reef.io.network.proto.ReefNetworkServiceProtos.NSRecordPBuf;
 import org.apache.reef.wake.Identifier;
 import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.Codec;
@@ -77,28 +78,11 @@ public class NSMessageCodec<T> implements Codec<NSMessage<T>> {
         throw new RuntimeException("IOException", e);
       }
     } else {
-      /*
-      try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-        try (DataOutputStream daos = new DataOutputStream(baos)) {
-          daos.writeUTF(obj.getSrcId().toString());
-          daos.writeUTF(obj.getDestId().toString());
-          daos.writeInt(obj.getData().size());
-          for (final T rec : obj.getData()) {
-            final byte[] bytes = codec.encode(rec);
-            daos.writeInt(bytes.length);
-            daos.write(bytes);
-          }
-        }
-        return baos.toByteArray();
-      } catch (final IOException e) {
-        throw new RuntimeException("IOException", e);
-      }
-      */
-      final ReefNetworkServiceProtos.NSMessagePBuf.Builder pbuf = ReefNetworkServiceProtos.NSMessagePBuf.newBuilder();
+      final NSMessagePBuf.Builder pbuf = NSMessagePBuf.newBuilder();
       pbuf.setSrcid(obj.getSrcId().toString());
       pbuf.setDestid(obj.getDestId().toString());
       for (final T rec : obj.getData()) {
-        final ReefNetworkServiceProtos.NSRecordPBuf.Builder rbuf = ReefNetworkServiceProtos.NSRecordPBuf.newBuilder();
+        final NSRecordPBuf.Builder rbuf = NSRecordPBuf.newBuilder();
         rbuf.setData(ByteString.copyFrom(codec.encode(rec)));
         pbuf.addMsgs(rbuf);
       }
@@ -131,37 +115,18 @@ public class NSMessageCodec<T> implements Codec<NSMessage<T>> {
         throw new RuntimeException("IOException", e);
       }
     } else {
-      /*
-      try (ByteArrayInputStream bais = new ByteArrayInputStream(buf)) {
-        try (DataInputStream dais = new DataInputStream(bais)) {
-          final Identifier srcId = factory.getNewInstance(dais.readUTF());
-          final Identifier destId = factory.getNewInstance(dais.readUTF());
-          final int size = dais.readInt();
-          final List<T> list = new ArrayList<T>(size);
-          for (int i = 0; i < size; i++) {
-            final byte[] bytes = new byte[dais.readInt()];
-            dais.read(bytes);
-            list.add(codec.decode(bytes));
-          }
-          return new NSMessage<>(srcId, destId, list);
-        }
-      } catch (final IOException e) {
-        throw new RuntimeException("IOException", e);
-      }
-      */
-      ReefNetworkServiceProtos.NSMessagePBuf pbuf;
+      NSMessagePBuf pbuf;
       try {
-        pbuf = ReefNetworkServiceProtos.NSMessagePBuf.parseFrom(buf);
+        pbuf = NSMessagePBuf.parseFrom(buf);
       } catch (final InvalidProtocolBufferException e) {
         e.printStackTrace();
         throw new NetworkRuntimeException(e);
       }
       final List<T> list = new ArrayList<T>();
-      for (final ReefNetworkServiceProtos.NSRecordPBuf rbuf : pbuf.getMsgsList()) {
+      for (final NSRecordPBuf rbuf : pbuf.getMsgsList()) {
         list.add(codec.decode(rbuf.getData().toByteArray()));
       }
       return new NSMessage<T>(factory.getNewInstance(pbuf.getSrcid()), factory.getNewInstance(pbuf.getDestid()), list);
-
     }
   }
 

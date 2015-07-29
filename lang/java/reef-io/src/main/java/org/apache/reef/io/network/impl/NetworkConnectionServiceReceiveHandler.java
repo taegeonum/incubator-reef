@@ -31,11 +31,11 @@ import java.util.Map;
 final class NetworkConnectionServiceReceiveHandler implements EventHandler<TransportEvent> {
 
   private final Map<String, NetworkConnectionFactory> connFactoryMap;
-  private final Codec<? super NetworkConnectionServiceMessage> codec;
+  private final Codec<NetworkConnectionServiceMessage> codec;
 
   NetworkConnectionServiceReceiveHandler(
       final Map<String, NetworkConnectionFactory> connFactoryMap,
-      final Codec<? super NetworkConnectionServiceMessage> codec) {
+      final Codec<NetworkConnectionServiceMessage> codec) {
     this.connFactoryMap = connFactoryMap;
     this.codec = codec;
   }
@@ -43,7 +43,7 @@ final class NetworkConnectionServiceReceiveHandler implements EventHandler<Trans
   @Override
   public void onNext(final TransportEvent transportEvent) {
     final NetworkConnectionServiceMessage nsMessage
-        = (NetworkConnectionServiceMessage) codec.decode(transportEvent.getData());
+        = codec.decode(transportEvent.getData());
 
     nsMessage.setRemoteAddress(transportEvent.getRemoteAddress());
     final NetworkConnectionFactory connFactory = connFactoryMap.get(nsMessage.getConnectionFactoryId());
