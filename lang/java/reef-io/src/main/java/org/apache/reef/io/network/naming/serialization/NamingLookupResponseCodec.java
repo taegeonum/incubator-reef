@@ -26,7 +26,9 @@ import org.apache.reef.wake.IdentifierFactory;
 import org.apache.reef.wake.remote.Codec;
 
 import javax.inject.Inject;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,7 +61,7 @@ public final class NamingLookupResponseCodec implements Codec<NamingLookupRespon
     for (final NameAssignment nameAssignment : obj.getNameAssignments()) {
       assignments.add(AvroNamingAssignment.newBuilder()
           .setId(nameAssignment.getIdentifier().toString())
-          .setHost(nameAssignment.getAddress().getHostName())
+          .setInetAddr(nameAssignment.getAddress().getAddress().toString())
           .setPort(nameAssignment.getAddress().getPort())
           .build());
     }
@@ -80,12 +82,16 @@ public final class NamingLookupResponseCodec implements Codec<NamingLookupRespon
     final AvroNamingLookupResponse avroResponse = AvroUtils.fromBytes(buf, AvroNamingLookupResponse.class);
     final List<NameAssignment> nas = new ArrayList<>(avroResponse.getTuples().size());
     for (final AvroNamingAssignment tuple : avroResponse.getTuples()) {
-      nas.add(
-          new NameAssignmentTuple(
-              factory.getNewInstance(tuple.getId().toString()),
-              new InetSocketAddress(tuple.getHost().toString(), tuple.getPort())
-          )
-      );
+      try {
+        nas.add(
+            new NameAssignmentTuple(
+                factory.getNewInstance(tuple.getId().toString()),
+                new InetSocketAddress(InetAddress.getByName(tuple.getInetAddr().toString()), tuple.getPort())
+            )
+        );
+      } catch (UnknownHostException e) {
+        throw new RuntimeException(e);
+      }
     }
     return new NamingLookupResponse(nas);
   }
