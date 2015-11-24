@@ -26,6 +26,7 @@ import org.apache.reef.wake.remote.Codec;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
 /**
  * Naming registration request codec.
@@ -52,11 +53,10 @@ public class NamingRegisterRequestCodec implements Codec<NamingRegisterRequest> 
   @Override
   public byte[] encode(final NamingRegisterRequest obj) {
     final AvroNamingRegisterRequest result = AvroNamingRegisterRequest.newBuilder()
-        .setId(obj.getNameAssignment().getIdentifier().toString())
-        .setInetAddr(obj.getNameAssignment().getAddress().getAddress().toString())
-        //.setHost(obj.getNameAssignment().getAddress().getHostName())
-        .setPort(obj.getNameAssignment().getAddress().getPort())
-        .build();
+            .setId(obj.getNameAssignment().getIdentifier().toString())
+            .setInetAddr(ByteBuffer.wrap(obj.getNameAssignment().getAddress().getAddress().getAddress()))
+            .setPort(obj.getNameAssignment().getAddress().getPort())
+            .build();
     return AvroUtils.toBytes(result, AvroNamingRegisterRequest.class);
   }
 
@@ -74,7 +74,7 @@ public class NamingRegisterRequestCodec implements Codec<NamingRegisterRequest> 
     try {
       return new NamingRegisterRequest(
           new NameAssignmentTuple(factory.getNewInstance(avroNamingRegisterRequest.getId().toString()),
-              new InetSocketAddress(InetAddress.getByName(avroNamingRegisterRequest.getInetAddr().toString()),
+              new InetSocketAddress(InetAddress.getByAddress(avroNamingRegisterRequest.getInetAddr().array()),
                   avroNamingRegisterRequest.getPort()))
       );
     } catch (UnknownHostException e) {

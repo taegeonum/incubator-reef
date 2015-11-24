@@ -31,7 +31,7 @@
     "name":"AvroNamingAssignment",
     "fields":[
 	   {"name":"id","type":"string"},
-	   {"name":"inet_addr","type":"string"},
+	   {"name":"inet_addr","type":"bytes"},
      {"name":"port","type":"int"}
     ]
 },
@@ -49,7 +49,7 @@
     "name":"AvroNamingRegisterRequest",
     "fields":[
 	   {"name":"id","type":"string"},
-	   {"name":"inet_addr","type":"string"},
+	   {"name":"inet_addr","type":"bytes"},
      {"name":"port","type":"int"}
     ]
 },

@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,7 +62,7 @@ public final class NamingLookupResponseCodec implements Codec<NamingLookupRespon
     for (final NameAssignment nameAssignment : obj.getNameAssignments()) {
       assignments.add(AvroNamingAssignment.newBuilder()
           .setId(nameAssignment.getIdentifier().toString())
-          .setInetAddr(nameAssignment.getAddress().getAddress().toString())
+          .setInetAddr(ByteBuffer.wrap(nameAssignment.getAddress().getAddress().getAddress()))
           .setPort(nameAssignment.getAddress().getPort())
           .build());
     }
@@ -86,7 +87,7 @@ public final class NamingLookupResponseCodec implements Codec<NamingLookupRespon
         nas.add(
             new NameAssignmentTuple(
                 factory.getNewInstance(tuple.getId().toString()),
-                new InetSocketAddress(InetAddress.getByName(tuple.getInetAddr().toString()), tuple.getPort())
+                new InetSocketAddress(InetAddress.getByAddress(tuple.getInetAddr().array()), tuple.getPort())
             )
         );
       } catch (UnknownHostException e) {
